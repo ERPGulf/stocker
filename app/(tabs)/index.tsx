@@ -1,75 +1,92 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+export default function Warehouse() {
+  const router = useRouter();
+  const [warehouse, setWarehouse] = useState<string | null>(null);
+  const [shelf, setShelf] = useState<string | null>(null);
 
-export default function HomeScreen() {
+  // Placeholder selectors – can be replaced with proper pickers later
+  const Select = ({ label, value, onPress }: { label: string; value?: string | null; onPress: () => void }) => (
+    <TouchableOpacity onPress={onPress} style={styles.select}>
+      <Text style={styles.selectText}>{value ?? label}</Text>
+      <Text style={styles.chevron}>▾</Text>
+    </TouchableOpacity>
+  );
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
+    <View style={styles.container}>
+      <View style={styles.card}>
+        <Text style={styles.title}>Warehouse</Text>
+        <Select
+          label="Select warehouse"
+          value={warehouse}
+          onPress={() => setWarehouse('Main Warehouse')}
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+        <Select
+          label="Select shelf"
+          value={shelf}
+          onPress={() => setShelf('Shelf A')}
+        />
+
+        <TouchableOpacity
+          style={[styles.button, !(warehouse && shelf) && { opacity: 0.6 }]}
+          disabled={!(warehouse && shelf)}
+          onPress={() => router.push('/(tabs)/items')}
+        >
+          <Text style={styles.buttonText}>List today's entry</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: '#f6f7fb',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  card: {
+    width: '90%',
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+  select: {
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  selectText: {
+    color: '#111827',
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  chevron: {
+    color: '#6b7280',
+  },
+  button: {
+    backgroundColor: '#2563eb',
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  buttonText: {
+    color: '#fff',
+    fontWeight: '700',
   },
 });
