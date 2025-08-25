@@ -14,7 +14,7 @@ export type GetItemsResponse = {
 
 const BASE_URL = 'https://aysha.erpgulf.com/api/method/stocker.stocker.api.get_items';
 
-export async function getItems(barcode?: string): Promise<GetItemsResponse> {
+export async function getItems(barcode?: string, token?: string): Promise<GetItemsResponse> {
   const url = new URL(BASE_URL);
   if (barcode && barcode.trim().length > 0) {
     url.searchParams.set('barcode', barcode.trim());
@@ -24,6 +24,7 @@ export async function getItems(barcode?: string): Promise<GetItemsResponse> {
     method: 'GET',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       // Mirrors provided curl; server appears to accept Guest session
       'Cookie': 'full_name=Guest; sid=Guest; system_user=no; user_id=Guest; user_image=',
     },
@@ -84,7 +85,7 @@ export function normalizeItemsFromResponse(json: any, preferBarcode?: string): I
   });
 }
 
-export async function getNormalizedItems(barcode?: string): Promise<Item[]> {
-  const json = await getItems(barcode);
+export async function getNormalizedItems(barcode?: string, token?: string): Promise<Item[]> {
+  const json = await getItems(barcode, token);
   return normalizeItemsFromResponse(json, barcode);
 }

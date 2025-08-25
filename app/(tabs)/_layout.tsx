@@ -1,15 +1,33 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Platform } from 'react-native';
+import { Platform, Alert } from 'react-native';
 
 import { HapticTab } from '@/components/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { useWarehouse } from '@/lib/state/warehouse';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const { selectedWarehouse, shelf } = useWarehouse();
+
+  const canProceed = Boolean(selectedWarehouse && shelf);
+  const showAlert = (title: string, msg: string) => {
+    if (Platform.OS === 'web') {
+      // Fallback for web where Alert may not render reliably
+      alert(`${title}\n\n${msg}`);
+    } else {
+      Alert.alert(title, msg);
+    }
+  };
+  const guard = (e: any) => {
+    if (!canProceed) {
+      e.preventDefault();
+      showAlert('Selection required', 'Please select both warehouse and shelf first.');
+    }
+  };
 
   return (
     <Tabs
@@ -38,6 +56,7 @@ export default function TabLayout() {
           title: 'scanning',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
         }}
+        listeners={{ tabPress: guard }}
       />
       <Tabs.Screen
         name="itemDetails"
@@ -45,6 +64,7 @@ export default function TabLayout() {
           title: 'ItemDetails',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
         }}
+        listeners={{ tabPress: guard }}
       />
       
       <Tabs.Screen
@@ -53,6 +73,7 @@ export default function TabLayout() {
           title: 'Items',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
         }}
+        listeners={{ tabPress: guard }}
       />
       
     </Tabs>
