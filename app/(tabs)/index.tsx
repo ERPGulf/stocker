@@ -113,7 +113,7 @@ export default function WarehouseScreen() {
           style={[styles.button, !((selectedWarehouse) && shelf) && { opacity: 0.6 }]}
           onPress={() => {
             if (!selectedWarehouse || !shelf) {
-              showAlert('Selection required', 'Please select both warehouse and shelf to continue.');
+              showAlert('Selection required', 'Please select warehouse and shelf to continue.');
               return;
             }
             router.push('/(tabs)/items');

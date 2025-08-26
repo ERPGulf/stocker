@@ -52,7 +52,9 @@ export type UpdateStockResponse = {
     item_code?: string;
     uom?: string;
     qty?: number | string;
+    message?: string; // Added message property for error handling
   };
+  message?: string; 
   [key: string]: any;
 };
 
@@ -72,10 +74,10 @@ export async function updateStockEntry(payload: UpdateStockPayload): Promise<Upd
 }
 // CREATE STOCK ENTRY
 export type CreateStockPayload = {
-  item_id: string; // API expects item_id (SKU code)
+  item_id: string; // API expects item_id 
   uom: string;
   qty: number;
-  warehouse: string; // name/id as required by backend
+  warehouse: string; 
   barcode: string;
   shelf: string;
   date_time?: string; // 'YYYY-MM-DD HH:mm:ss'
@@ -168,7 +170,7 @@ export async function deleteStockEntry(entry_id: string): Promise<{ status?: str
       status: error.response?.status,
     });
     
-    // Try to extract error message from response
+    // error message from response
     const errorMessage = error.response?.data?.message || error.message || 'Failed to delete entry';
     return { status: 'error', message: errorMessage };
   }
@@ -239,7 +241,7 @@ export function normalizeItemsFromResponse(json: any, preferBarcode?: string): I
     } as Item;
   });
 }
-// Convenience: list and normalize by warehouse
+//  list and normalize by warehouse
 export async function getNormalizedItemsByWarehouse(warehouse_id: string): Promise<Item[]> {
   const json = await listItems(warehouse_id);
   return normalizeItemsFromResponse(json);

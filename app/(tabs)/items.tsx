@@ -3,7 +3,7 @@ import { getAccessToken } from '@/lib/http/tokenStore';
 import { useWarehouse } from '@/lib/state/warehouse';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Image, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function Items() {
   const router = useRouter();
@@ -12,6 +12,22 @@ export default function Items() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [customAlert, setCustomAlert] = useState<{visible: boolean; title: string; message: string}>({visible: false, title: '', message: ''});
+  const [editingItem, setEditingItem] = useState<StockEntry | null>(null);
+  const [editForm, setEditForm] = useState<{
+    item_code: string;
+    barcode: string;
+    qty: string;
+    uom: string;
+    shelf: string;
+    date: string;
+  }>({
+    item_code: '',
+    barcode: '',
+    qty: '',
+    uom: 'Nos',
+    shelf: '',
+    date: new Date().toISOString().split('T')[0],
+  });
 
   const load = async () => {
     try {
@@ -85,7 +101,7 @@ export default function Items() {
     );
   };
 
-  const handleUpdate = async (item: StockEntry) => {
+  const handleUpdateItem = async (item: StockEntry) => {
     if (!item.entry_id) {
       const errorMsg = 'Cannot update: No entry ID provided';
       console.error(errorMsg);
@@ -217,6 +233,64 @@ export default function Items() {
     setCustomAlert(prev => ({...prev, visible: false}));
   };
 
+  const handleEdit = (item: StockEntry) => (e: any) => {
+    e?.stopPropagation?.();
+    setEditingItem(item);
+    setEditForm({
+      item_code: item.item_code || '',
+      barcode: item.barcode || '',
+      qty: String(item.qty || ''),
+      uom: item.uom || 'Nos',
+      shelf: item.shelf || '',
+      date: item.date ? new Date(item.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+    });
+  };
+
+  const handleSaveUpdate = async () => {
+    if (!editingItem?.entry_id) return;
+
+    try {
+      setLoading(true);
+      const response = await updateStockEntry({
+        entry_id: editingItem.entry_id,
+        item_code: editForm.item_code,
+        barcode: editForm.barcode,
+        qty: Number(editForm.qty) || 0,
+        uom: editForm.uom,
+        shelf: editForm.shelf,
+        date: editForm.date,
+        warehouse: editingItem.warehouse || '',
+      });
+
+      // Close the modal immediately in all cases
+      setEditingItem(null);
+      
+      // Handle success case
+      if (response?.data?.status === 'success') {
+        await load(); // Refresh the data
+        showAlert('Success', 'Item updated successfully');
+      } 
+      // Handle error case with message from API
+      else if (response?.data?.message) {
+        showAlert('Error', response.data.message);
+      }
+      // Handle any other error case
+      else {
+        showAlert('Error', 'Failed to update item');
+      }
+    } catch (error: any) {
+      console.error('Update error:', error);
+      setEditingItem(null); // Close the modal on error
+      // Handle different error response formats
+      const errorMessage = error?.response?.data?.error || 
+                         error?.message || 
+                         'Failed to update item. Please try again.';
+      showAlert('Error', errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
       {/* Custom Alert Modal */}
@@ -256,6 +330,102 @@ export default function Items() {
           </View>
         </View>
       </Modal>
+
+      {/* Edit Item Modal */}
+      <Modal
+        visible={!!editingItem}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setEditingItem(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.editModalContent}>
+            <Text style={styles.modalTitle}>Edit Item</Text>
+            
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Item Code</Text>
+              <TextInput
+                style={styles.input}
+                value={editForm.item_code}
+                onChangeText={(text) => setEditForm(prev => ({ ...prev, item_code: text }))}
+                placeholder="Item Code"
+              />
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Barcode</Text>
+              <TextInput
+                style={styles.input}
+                value={editForm.barcode}
+                onChangeText={(text) => setEditForm(prev => ({ ...prev, barcode: text }))}
+                placeholder="Barcode"
+              />
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Quantity</Text>
+              <TextInput
+                style={styles.input}
+                value={editForm.qty}
+                onChangeText={(text) => setEditForm(prev => ({ ...prev, qty: text }))}
+                placeholder="Quantity"
+                keyboardType="numeric"
+              />
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>UOM</Text>
+              <TextInput
+                style={styles.input}
+                value={editForm.uom}
+                onChangeText={(text) => setEditForm(prev => ({ ...prev, uom: text }))}
+                placeholder="Unit of Measure"
+              />
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Shelf</Text>
+              <TextInput
+                style={styles.input}
+                value={editForm.shelf}
+                onChangeText={(text) => setEditForm(prev => ({ ...prev, shelf: text }))}
+                placeholder="Shelf/Rack"
+              />
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Date</Text>
+              <TextInput
+                style={styles.input}
+                value={editForm.date}
+                onChangeText={(text) => setEditForm(prev => ({ ...prev, date: text }))}
+                placeholder="YYYY-MM-DD"
+              />
+            </View>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setEditingItem(null)}
+                disabled={loading}
+              >
+                <Text style={styles.buttonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.saveButton]}
+                onPress={handleSaveUpdate}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={[styles.buttonText, { color: '#fff' }]}>Save Changes</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
         <Text style={styles.title}>Today's entries</Text>
 
@@ -268,7 +438,10 @@ export default function Items() {
       )}
       {error && <Text style={{ color: 'red', marginBottom: 8 }}>{error}</Text>}
       <FlatList
-        contentContainerStyle={{ paddingVertical: 8 }}
+        contentContainerStyle={{
+          paddingVertical: 8,
+          paddingBottom: 80 // Add extra padding at the bottom to prevent content from being hidden behind tab bar
+        }}
         data={items}
         keyExtractor={(item, idx) => `${item.entry_id ?? item.barcode ?? idx}-${idx}`}
         renderItem={({ item }) => (
@@ -290,27 +463,13 @@ export default function Items() {
             </View>
             <View style={styles.actions}>
               <TouchableOpacity
-                onPress={() => {
-                  const bc = item.barcode?.trim();
-                  if (!bc) {
-                    Alert.alert('Missing barcode', 'This entry has no barcode to edit.');
-                    return;
-                  }
-                  const params: Record<string, string> = {
-                    barcode: bc,
-                  };
-                  if (item.entry_id) params.entry_id = String(item.entry_id);
-                  if ((item as any)?.id && !params.entry_id) params.entry_id = String((item as any).id);
-                  if (item.item_code) params.item_code = String(item.item_code);
-                  if (item.uom) params.uom = String(item.uom);
-                  if (typeof item.qty !== 'undefined') params.qty = String(item.qty);
-                  if (item.shelf) params.shelf = String(item.shelf);
-                  if (item.warehouse) params.warehouse = String(item.warehouse);
-                  if (item.date) params.date = String(item.date);
-                  router.push({ pathname: '/(tabs)/itemDetails', params });
-                }}
+                onPress={handleEdit(item)}
+                style={styles.actionButton}
               >
-                <Text>✏️</Text>
+                <Image 
+                  source={require('@/assets/images/edit-icon.png')} 
+                  style={styles.icon}
+                />
               </TouchableOpacity>
               <View style={{ width: 12 }} />
               <TouchableOpacity
@@ -331,12 +490,13 @@ export default function Items() {
                   confirmAndDelete(String(eid));
                 }}
                 onLongPress={() => {
-                  // Optional: Add haptic feedback on long press
-                  // Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                   console.log('Long press on delete');
                 }}
               >
-                <Text style={styles.deleteIcon}>🗑️</Text>
+                <Image 
+                  source={require('@/assets/images/delete-icon.png')} 
+                  style={styles.icon}
+                />
               </TouchableOpacity>
             </View>
           </View>
@@ -390,9 +550,6 @@ const styles = StyleSheet.create({
     minWidth: 80,
     alignItems: 'center',
   },
-  cancelButton: {
-    backgroundColor: '#e0e0e0',
-  },
   destructiveButton: {
     backgroundColor: '#FF3B30',
   },
@@ -440,6 +597,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  actionButton: {
+    padding: 8,
+    borderRadius: 4,
+    backgroundColor: 'transparent',
+  },
   deleteButton: {
     padding: 8,
     borderRadius: 4,
@@ -447,5 +609,62 @@ const styles = StyleSheet.create({
   },
   deleteIcon: {
     fontSize: 20,
+  },
+  icon: {
+    resizeMode: 'contain',
+  },
+  editModalContent: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
+    width: '90%',
+    maxHeight: '80%',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  formGroup: {
+    marginBottom: 15,
+  },
+  label: {
+    marginBottom: 5,
+    fontWeight: '500',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 5,
+    padding: 10,
+    fontSize: 16,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 20,
+  },
+  modalButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+    marginLeft: 10,
+    minWidth: 100,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    borderColor: 'grey',
+    borderWidth: 1,
+    borderRadius: 5,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    
+  },
+  saveButton: {
+    backgroundColor: '#007AFF',
+  },
+  buttonText: {
+    fontWeight: '600',
   },
 });

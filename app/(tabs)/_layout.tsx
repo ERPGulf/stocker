@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Platform, Alert } from 'react-native';
+import { Alert, Image, Platform, SafeAreaView, StyleSheet } from 'react-native';
 
 import { HapticTab } from '@/components/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
@@ -25,11 +25,12 @@ export default function TabLayout() {
   const guard = (e: any) => {
     if (!canProceed) {
       e.preventDefault();
-      showAlert('Selection required', 'Please select both warehouse and shelf first.');
+      showAlert('Selection required', 'Please select both warehouse and shelf .');
     }
   };
 
   return (
+    <SafeAreaView style={styles.safeArea}>
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
@@ -53,29 +54,38 @@ export default function TabLayout() {
       <Tabs.Screen
         name="scanning"
         options={{
-          title: 'scanning',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: 'Scan',
+          tabBarIcon: ({ color }) => <Image source={require('@/assets/images/scanner-icons.png')} 
+          style={{ tintColor: color, width: 24, height: 24 }}  /> ,
         }}
         listeners={{ tabPress: guard }}
       />
       <Tabs.Screen
         name="itemDetails"
         options={{
-          title: 'ItemDetails',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          href: null, // This hides the tab from the tab bar
+          title: 'Item Details',
         }}
-        listeners={{ tabPress: guard }}
       />
       
       <Tabs.Screen
         name="items"
         options={{
           title: 'Items',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          tabBarIcon: ({ color }) => <Image source={require('@/assets/images/Items.png')} 
+          style={{ tintColor: color, width: 24, height: 24 }}  />,
         }}
         listeners={{ tabPress: guard }}
       />
       
     </Tabs>
+    </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    marginTop: 20, // 👈 applies margin/padding to ALL screens
+  },
+});

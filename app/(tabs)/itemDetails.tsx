@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Button, ScrollView, TextInput, Alert } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
 import { createStockEntry, getItemByBarcode, ItemDetail } from '@/lib/api/items';
 import { useWarehouse } from '@/lib/state/warehouse';
+import { useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Alert, Button, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 export default function ItemDetails() {
   const { barcode } = useLocalSearchParams<{ barcode?: string }>();
@@ -113,13 +113,14 @@ export default function ItemDetails() {
           <Row label="Item name" value={String(item.item_name ?? '')} />
           <Row label="UOM" value={String(item.uom ?? '')} />
           <View style={{ height: 12 }} />
-          <Text style={styles.label}>Quantity to add</Text>
+          <Text style={styles.label}>Quantity </Text>
           <TextInput
             style={styles.input}
             keyboardType="numeric"
             value={qty}
             onChangeText={(t) => setQty(t.replace(/[^0-9.]/g, ''))}
             placeholder={`Max ${totalQty}`}
+            placeholderTextColor="#6b7280"
           />
         </View>
       ) : (

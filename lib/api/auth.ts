@@ -40,21 +40,13 @@ export type TokenResponse = {
       },
       body: body.toString(), // send as form-urlencoded
     });
-  
-    // 🔍 Debug
-    console.log("➡️ Request:", {
-      url: GENERATE_TOKEN_URL,
-      body: body.toString(),
-    });
-    console.log("⬅️ Status:", res.status, res.statusText);
+
   
     const text = await res.text();
-    console.log("⬅️ Raw response text:", text);
   
     let json: TokenResponse;
     try {
       json = JSON.parse(text);
-      console.log("⬅️ Parsed JSON:", JSON.stringify(json, null, 2));
     } catch {
       throw new Error(`generateToken failed: Response was not JSON -> ${text}`);
     }
