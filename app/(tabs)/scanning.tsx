@@ -1,8 +1,8 @@
-import React, { useState } from "react";
-import { Text, View, StyleSheet, Button, Dimensions, TextInput } from "react-native";
-import { CameraView, Camera } from "expo-camera";
-import Svg, { Rect, Defs, Mask } from "react-native-svg";
-import { useRouter } from "expo-router";
+import { Camera, CameraView } from "expo-camera";
+import { useRouter, useFocusEffect } from "expo-router";
+import React, { useState, useCallback } from "react";
+import { Button, Dimensions, StyleSheet, Text, TextInput, View } from "react-native";
+import Svg, { Defs, Mask, Rect } from "react-native-svg";
 
 export default function Scanning() {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
@@ -10,6 +10,15 @@ export default function Scanning() {
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [barcode, setBarcode] = useState("");
   const router = useRouter();
+
+  // Reset to initial state when the tab is focused
+  useFocusEffect(
+    useCallback(() => {
+      setScanned(false);
+      setIsCameraActive(false);
+      setBarcode("");
+    }, [])
+  );
 
   const startScanning = async () => {
     setScanned(false);
@@ -68,68 +77,44 @@ export default function Scanning() {
     );
   }
 
-  const { width, height } = Dimensions.get("window");
-  const frameWidth = width * 0.7;
-  const frameHeight = width * 0.5;
-  const frameX = (width - frameWidth) / 2;
-  const frameY = (height - frameHeight) / 2;
-  const cornerRadius = 20;
-
   return (
     <View style={styles.container}>
       <CameraView
         onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
         barcodeScannerSettings={{
-          barcodeTypes: ["qr", "pdf417"],
+          barcodeTypes: ['qr', 'pdf417', 'ean13', 'ean8', 'upc_e', 'upc_a', 'code39', 'code128'],
         }}
-        style={StyleSheet.absoluteFillObject}
-      />
-
-      {/* Dark overlay with rounded cutout */}
-      <Svg height={height} width={width} style={StyleSheet.absoluteFill}>
-        <Defs>
-          <Mask id="mask">
-            {/* Full white = visible, black = transparent hole */}
-            <Rect width={width} height={height} fill="white" />
-            <Rect
-              x={frameX}
-              y={frameY}
-              rx={cornerRadius}
-              ry={cornerRadius}
-              width={frameWidth}
-              height={frameHeight}
-              fill="black"
-            />
-          </Mask>
-        </Defs>
-        {/* Dark overlay applied with mask */}
-        <Rect
-          width={width}
-          height={height}
-          fill="rgba(0,0,0,0.5)"
-          mask="url(#mask)"
-        />
-      </Svg>
-
-      {/* Caption under the scanning frame */}
-      <Text
-        style={{
-          position: "absolute",
-          top: frameY + frameHeight + 24,
-          left: 0,
-          right: 0,
-          textAlign: "center",
-          color: "#fff",
-          fontSize: 16,
-          fontWeight: "600",
-        }}
+        style={[StyleSheet.absoluteFill, styles.camera]}
       >
-        Scan your barcode
-      </Text>
+        <View style={styles.overlay}>
+          <Svg height="100%" width="100%">
+            <Defs>
+              <Mask id="mask" x="0" y="0" height="100%" width="100%">
+                <Rect height="100%" width="100%" fill="#fff" />
+                <Rect
+                  x={Dimensions.get('window').width * 0.1}
+                  y={Dimensions.get('window').height * 0.3}
+                  width={Dimensions.get('window').width * 0.8}
+                  height={Dimensions.get('window').width * 0.4}
+                  fill="black"
+                  rx={10}
+                  ry={10}
+                />
+              </Mask>
+            </Defs>
+            <Rect height="100%" width="100%" fill="rgba(0,0,0,0.5)" mask="url(#mask)" />
+          </Svg>
+        </View>
+        <Text style={styles.scanText}>
+          Scan your barcode
+        </Text>
 
-      {scanned && (
-        <Button title="Tap to Scan Again" onPress={() => setScanned(false)} />
-      )}
+        {scanned && (
+          <View style={styles.scanAgainContainer}>
+            <Button title="Tap to Scan Again" onPress={() => setScanned(false)} />
+          </View>
+        )}
+      </CameraView>
     </View>
   );
 }
@@ -137,24 +122,52 @@ export default function Scanning() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: 'black',
+  },
+  camera: {
+    flex: 1,
   },
   center: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: 'white',
   },
   enterTitle: {
     fontSize: 20,
-    fontWeight: "700",
+    fontWeight: '700',
     marginBottom: 12,
+    color: '#000',
   },
   input: {
-    width: "80%",
-    backgroundColor: "#fff",
+    width: '80%',
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
+    backgroundColor: '#f0f0f0',
+    fontSize: 16,
+    color: '#000',
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scanText: {
+    position: 'absolute',
+    top: Dimensions.get('window').height * 0.25,
+    width: '100%',
+    textAlign: 'center',
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
+    backgroundColor: 'transparent',
+  },
+  scanAgainContainer: {
+    position: 'absolute',
+    bottom: 40,
+    width: '100%',
+    alignItems: 'center',
   },
 });

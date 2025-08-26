@@ -1,22 +1,33 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Button, ScrollView } from 'react-native';
+import { createStockEntry, getItemByBarcode, ItemDetail } from '@/lib/api/items';
+import { useWarehouse } from '@/lib/state/warehouse';
 import { useLocalSearchParams } from 'expo-router';
-import { getNormalizedItems, Item } from '@/lib/api';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Alert, Button, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 export default function ItemDetails() {
   const { barcode } = useLocalSearchParams<{ barcode?: string }>();
-  const [item, setItem] = useState<Item | null>(null);
+  const { selectedWarehouse, shelf, token, authLoading, refreshToken } = useWarehouse();
+  const [item, setItem] = useState<ItemDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [qty, setQty] = useState<string>('');
+
+  const totalQty = useMemo(() => Number(item?.total_qty ?? 0), [item?.total_qty]);
 
   useEffect(() => {
     const load = async () => {
       try {
         setLoading(true);
         setError(null);
-        const list = await getNormalizedItems(typeof barcode === 'string' ? barcode : undefined);
-        const picked = Array.isArray(list) ? list[0] : null;
-        setItem(picked ?? null);
+        const b = typeof barcode === 'string' ? barcode : '';
+        const warehouseId = selectedWarehouse?.warehouse_id ?? '';
+        if (!b || !warehouseId) {
+          setItem(null);
+          setError(!warehouseId ? 'Please select a warehouse first' : 'No barcode provided');
+          return;
+        }
+        const detail = await getItemByBarcode(b, warehouseId);
+        setItem(detail);
       } catch (e: any) {
         setError(e?.message ?? 'Failed to load ');
       } finally {
@@ -24,27 +35,100 @@ export default function ItemDetails() {
       }
     };
     load();
-  }, [barcode]);
+  }, [barcode, selectedWarehouse?.warehouse_id]);
+
+  const formatDateTime = (d: Date) => {
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    const yyyy = d.getFullYear();
+    const MM = pad(d.getMonth() + 1);
+    const dd = pad(d.getDate());
+    const hh = pad(d.getHours());
+    const mm = pad(d.getMinutes());
+    const ss = pad(d.getSeconds());
+    return `${yyyy}-${MM}-${dd} ${hh}:${mm}:${ss}`;
+  };
+
+  const onSubmit = async () => {
+    try {
+      if (!item) return;
+      if (!token) {
+        await refreshToken();
+      }
+      const q = Number(qty);
+      if (!q || q <= 0 || !Number.isFinite(q)) {
+        Alert.alert('Invalid quantity', 'Enter a positive number.');
+        return;
+      }
+      if (q > totalQty) {
+        Alert.alert('Quantity too high', `Quantity cannot exceed total qty (${totalQty}).`);
+        return;
+      }
+      const warehouseId = selectedWarehouse?.warehouse_id ?? '';
+      if (!warehouseId) {
+        Alert.alert('Missing warehouse', 'Please select a warehouse first.');
+        return;
+      }
+      const sh = shelf ?? '';
+      if (!sh) {
+        Alert.alert('Missing shelf', 'Please select a shelf first.');
+        return;
+      }
+      const b = typeof barcode === 'string' ? barcode : '';
+      if (!b) {
+        Alert.alert('Missing barcode', 'No barcode provided.');
+        return;
+      }
+      const payload = {
+        item_id: String(item.item_id ?? ''),
+        uom: String(item.uom ?? ''),
+        qty: q,
+        warehouse: warehouseId,
+        barcode: b,
+        shelf: sh,
+        date_time: formatDateTime(new Date()),
+      } as const;
+      setLoading(true);
+      setError(null);
+      await createStockEntry(payload);
+      Alert.alert('Success', 'Stock entry created.');
+      setQty('');
+    } catch (e: any) {
+      setError(e?.message ?? 'Failed to create entry');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Item details</Text>
-      {loading && <Text style={styles.muted}>Loading…</Text>}
+      {(loading || authLoading) && <Text style={styles.muted}>{authLoading ? 'Authenticating…' : 'Loading…'}</Text>}
       {error && <Text style={[styles.muted, { color: 'red' }]}>{error}</Text>}
 
       {item ? (
         <View style={styles.card}>
-          <Row label="Display Total Shelf Qty" value={String(item.qty ?? 0)} />
-          <Row label="Item code" value={String(item.item_code ?? '')} />
+          <Row label="Total Qty" value={String(item.total_qty ?? 0)} />
+          <Row label="Shelf Qty" value={String(item.shelf_qty ?? 0)} />
+          <Row label="Item ID" value={String(item.item_id ?? '')} />
           <Row label="Item name" value={String(item.item_name ?? '')} />
           <Row label="UOM" value={String(item.uom ?? '')} />
+          <View style={{ height: 12 }} />
+          <Text style={styles.label}>Quantity </Text>
+          <TextInput
+            style={styles.input}
+            keyboardType="numeric"
+            value={qty}
+            onChangeText={(t) => setQty(t.replace(/[^0-9.]/g, ''))}
+            placeholder={`Max ${totalQty}`}
+            placeholderTextColor="#6b7280"
+          />
         </View>
       ) : (
         !loading && <Text style={styles.muted}>No item found.</Text>
       )}
 
       <View style={{ height: 16 }} />
-      <Button title="Submit" onPress={() => { /* hook for submit action */ }} />
+      <Button title="Submit" onPress={onSubmit} disabled={loading} />
     </ScrollView>
   );
 }
@@ -87,5 +171,12 @@ const styles = StyleSheet.create({
   },
   muted: {
     color: '#6b7280',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
 });
