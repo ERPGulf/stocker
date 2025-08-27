@@ -1,6 +1,6 @@
 import { createStockEntry, getItemByBarcode, ItemDetail } from '@/lib/api/items';
 import { useWarehouse } from '@/lib/state/warehouse';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Button, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
@@ -11,6 +11,7 @@ export default function ItemDetails() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [qty, setQty] = useState<string>('');
+  const router = useRouter();
 
   const totalQty = useMemo(() => Number(item?.total_qty ?? 0), [item?.total_qty]);
 
@@ -91,6 +92,7 @@ export default function ItemDetails() {
       setError(null);
       await createStockEntry(payload);
       Alert.alert('Success', 'Stock entry created.');
+      router.push('/(tabs)/items');
       setQty('');
     } catch (e: any) {
       setError(e?.message ?? 'Failed to create entry');

@@ -3,7 +3,23 @@ import { getAccessToken } from '@/lib/http/tokenStore';
 import { useWarehouse } from '@/lib/state/warehouse';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Image, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { 
+  ActivityIndicator, 
+  Alert, 
+  FlatList, 
+  Image, 
+  Keyboard, 
+  KeyboardAvoidingView, 
+  Modal, 
+  Platform, 
+  ScrollView, 
+  StyleSheet, 
+  Text, 
+  TextInput, 
+  TouchableOpacity, 
+  TouchableWithoutFeedback, 
+  View 
+} from 'react-native';
 
 export default function Items() {
   const router = useRouter();
@@ -40,7 +56,7 @@ export default function Items() {
         return;
       }
       // Data fetch; Authorization is attached by Axios interceptor
-      const entries = await listStockEntries(warehouseId);
+      const entries = await listStockEntries();
       setItems(entries);
     } catch (e: any) {
       setError(e?.message ?? 'Failed to load items');
@@ -338,8 +354,17 @@ export default function Items() {
         animationType="slide"
         onRequestClose={() => setEditingItem(null)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.editModalContent}>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <ScrollView 
+              contentContainerStyle={styles.scrollContainer}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View style={styles.editModalContent}>
             <Text style={styles.modalTitle}>Edit Item</Text>
             
             <View style={styles.formGroup}>
@@ -505,23 +530,18 @@ export default function Items() {
           <Text style={styles.muted}>No items found.</Text>
         ) : null}
       />
-    </View>
-  );
-}
 
 const styles = StyleSheet.create({
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    padding: 20,
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
   },
-  alertBox: {
-    width: '80%',
-    backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 20,
+  /* ... */
     alignItems: 'center',
     elevation: 5,
   },

@@ -21,13 +21,16 @@ const DELETE_ENTRY_PATH = '/api/method/stocker.stocker.api.delete_stock_entry';
 const CREATE_ENTRY_PATH = '/api/method/stocker.stocker.api.create_stock_entry';
 const UPDATE_ENTRY_PATH = '/api/method/stocker.stocker.api.update_stock_entry';
 
-// LIST: items grouped by item_group, filtered by warehouse
-export async function listItems(warehouse_id: string): Promise<GetItemsResponse> {
+// LIST: Get all items, optionally filtered by warehouse
+export async function listItems(warehouse_id?: string): Promise<GetItemsResponse> {
   const params: Record<string, string> = {};
-  if (warehouse_id && warehouse_id.trim().length > 0) params.warehouse = warehouse_id.trim();
+  if (warehouse_id && warehouse_id.trim().length > 0) {
+    params.warehouse = warehouse_id.trim();
+  }
   const res = await API.get(LIST_BASE_PATH, { params });
   return res.data as GetItemsResponse;
 }
+
 
 // UPDATE STOCK ENTRY
 export type UpdateStockPayload = {
@@ -124,10 +127,8 @@ export type StockEntry = {
   date?: string;
 };
 
-export async function listStockEntries(warehouse?: string): Promise<StockEntry[]> {
-  const params: Record<string, string> = {};
-  if (warehouse && warehouse.trim().length > 0) params.warehouse = warehouse.trim();
-  const res = await API.get(STOCK_ENTRIES_PATH, { params });
+export async function listStockEntries(): Promise<StockEntry[]> {
+  const res = await API.get(STOCK_ENTRIES_PATH);
   const json = res.data;
   const data = Array.isArray(json?.data) ? json.data : [];
   return data as StockEntry[];
