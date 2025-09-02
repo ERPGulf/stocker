@@ -10,5 +10,9 @@ export default {
   // Ensure we export an object with an `expo` key as expected by Expo
   expo: {
     ...(appJson.expo || {}),
+    "android": {
+      "package": "com.hibarineesh.stocker"
+    },
   },
+  
 };

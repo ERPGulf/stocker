@@ -17,11 +17,7 @@ API.interceptors.request.use((config) => {
     config.headers = config.headers || {};
     (config.headers as any).Authorization = `Bearer ${token}`;
   }
-  try {
-    const masked = token ? `${token.slice(0, 6)}...${token.slice(-4)}` : 'none';
-    // eslint-disable-next-line no-console
-    console.log('[api] request', config.method?.toUpperCase(), config.url, 'auth:', masked);
-  } catch {}
+  
   return config;
 });
 
