@@ -11,54 +11,30 @@ export default function Scanning() {
   const [barcode, setBarcode] = useState("");
   const router = useRouter();
 
-  // Reset to initial state when the tab is focused
+  // Request camera permission and start camera when component mounts
   useFocusEffect(
     useCallback(() => {
-      setScanned(false);
-      setIsCameraActive(false);
-      setBarcode("");
+      const startCamera = async () => {
+        setScanned(false);
+        const { status } = await Camera.requestCameraPermissionsAsync();
+        const granted = status === "granted";
+        setHasPermission(granted);
+        setIsCameraActive(granted);
+      };
+      
+      startCamera();
+      
+      return () => {
+        // Cleanup if needed
+      };
     }, [])
   );
-
-  const startScanning = async () => {
-    setScanned(false);
-    const { status } = await Camera.requestCameraPermissionsAsync();
-    const granted = status === "granted";
-    setHasPermission(granted);
-    setIsCameraActive(granted);
-  };
 
   const handleBarcodeScanned = ({ type, data }: { type: string; data: string }) => {
     setScanned(true);
     // Navigate to Item Details with scanned barcode
     router.push({ pathname: "/(tabs)/itemDetails", params: { barcode: data } });
   };
-
-  // Initial screen: show button before opening camera
-  if (!isCameraActive) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.enterTitle}>Enter item</Text>
-        <TextInput
-          value={barcode}
-          onChangeText={setBarcode}
-          placeholder="Enter barcode"
-          style={styles.input}
-          autoCapitalize="none"
-          autoCorrect={false}
-          keyboardType="default"
-        />
-        <View style={{ height: 12 }} />
-        <Button
-          title="Search"
-          onPress={() => router.push({ pathname: "/(tabs)/itemDetails", params: { barcode } })}
-          disabled={!barcode?.trim()}
-        />
-        <View style={{ height: 24 }} />
-        <Button title="Scan Here" onPress={startScanning} />
-      </View>
-    );
-  }
 
   if (hasPermission === null) {
     return (
@@ -70,9 +46,7 @@ export default function Scanning() {
   if (hasPermission === false) {
     return (
       <View style={styles.center}>
-        <Text>No access to camera</Text>
-        <View style={{ height: 12 }} />
-        <Button title="Try Again" onPress={startScanning} />
+        <Text>No access to camera. Please enable camera permissions in your device settings.</Text>
       </View>
     );
   }
@@ -129,25 +103,10 @@ const styles = StyleSheet.create({
   },
   center: {
     flex: 1,
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
     padding: 20,
-    backgroundColor: 'white',
-  },
-  enterTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 12,
-    color: '#000',
-  },
-  input: {
-    width: '80%',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    backgroundColor: '#f0f0f0',
-    fontSize: 16,
-    color: '#000',
+    backgroundColor: 'black',
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,

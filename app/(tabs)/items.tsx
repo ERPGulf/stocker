@@ -3,23 +3,7 @@ import { getAccessToken } from '@/lib/http/tokenStore';
 import { useWarehouse } from '@/lib/state/warehouse';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { 
-  ActivityIndicator, 
-  Alert, 
-  FlatList, 
-  Image, 
-  Keyboard, 
-  KeyboardAvoidingView, 
-  Modal, 
-  Platform, 
-  ScrollView, 
-  StyleSheet, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  TouchableWithoutFeedback, 
-  View 
-} from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Image, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function Items() {
   const router = useRouter();
@@ -28,6 +12,7 @@ export default function Items() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [customAlert, setCustomAlert] = useState<{visible: boolean; title: string; message: string}>({visible: false, title: '', message: ''});
+  const [showTodayOnly, setShowTodayOnly] = useState<boolean>(false);
   const [editingItem, setEditingItem] = useState<StockEntry | null>(null);
   const [editForm, setEditForm] = useState<{
     item_code: string;
@@ -56,7 +41,7 @@ export default function Items() {
         return;
       }
       // Data fetch; Authorization is attached by Axios interceptor
-      const entries = await listStockEntries();
+      const entries = await listStockEntries(showTodayOnly);
       setItems(entries);
     } catch (e: any) {
       setError(e?.message ?? 'Failed to load items');
@@ -67,7 +52,7 @@ export default function Items() {
 
   useEffect(() => {
     load();
-  }, [selectedWarehouse?.warehouse_id]);
+  }, [selectedWarehouse?.warehouse_id, showTodayOnly]);
 
   // Show confirmation before deleting
   const confirmAndDelete = (entry_id?: string) => {
@@ -309,6 +294,18 @@ export default function Items() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Stock Entries</Text>
+        <TouchableOpacity 
+          style={[styles.toggleButton, showTodayOnly && styles.toggleButtonActive]}
+          onPress={() => setShowTodayOnly(!showTodayOnly)}
+        >
+          <Text style={[styles.toggleButtonText, showTodayOnly && styles.toggleButtonActiveText]}>
+            {showTodayOnly ? 'Show All' : 'Show Today'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+      
       {/* Custom Alert Modal */}
       <Modal
         visible={customAlert.visible}
@@ -354,17 +351,8 @@ export default function Items() {
         animationType="slide"
         onRequestClose={() => setEditingItem(null)}
       >
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalOverlay}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
-        >
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <ScrollView 
-              contentContainerStyle={styles.scrollContainer}
-              keyboardShouldPersistTaps="handled"
-            >
-              <View style={styles.editModalContent}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.editModalContent}>
             <Text style={styles.modalTitle}>Edit Item</Text>
             
             <View style={styles.formGroup}>
@@ -452,7 +440,6 @@ export default function Items() {
         </View>
       </Modal>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Text style={styles.title}>Today's entries</Text>
 
       </View>
       {(loading || authLoading) && (
@@ -530,20 +517,25 @@ export default function Items() {
           <Text style={styles.muted}>No items found.</Text>
         ) : null}
       />
+  </View>
+);
+}
 
 const styles = StyleSheet.create({
-  scrollContainer: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: 20,
-  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  /* ... */
+    justifyContent: 'center',
     alignItems: 'center',
-    elevation: 5,
+    padding: 20,
+  },
+  alertBox: {
+    width: '80%',
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
+    alignItems: 'center',
+    marginBottom: 15,
   },
   alertTitle: {
     fontSize: 18,
@@ -563,12 +555,27 @@ const styles = StyleSheet.create({
   },
   alertButton: {
     backgroundColor: '#007AFF',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    padding: 10,
     borderRadius: 5,
-    marginLeft: 8,
-    minWidth: 80,
+    marginLeft: 10,
+    minWidth: 70,
     alignItems: 'center',
+  },
+  toggleButton: {
+    backgroundColor: '#e0e0e0',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 15,
+  },
+  toggleButtonActive: {
+    backgroundColor: '#007AFF',
+  },
+  toggleButtonText: {
+    color: '#000',
+    fontWeight: '500',
+  },
+  toggleButtonActiveText: {
+    color: '#fff',
   },
   destructiveButton: {
     backgroundColor: '#FF3B30',
@@ -686,5 +693,11 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontWeight: '600',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
   },
 });

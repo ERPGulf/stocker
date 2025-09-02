@@ -127,8 +127,9 @@ export type StockEntry = {
   date?: string;
 };
 
-export async function listStockEntries(): Promise<StockEntry[]> {
-  const res = await API.get(STOCK_ENTRIES_PATH);
+export async function listStockEntries(todayOnly: boolean = false): Promise<StockEntry[]> {
+  const params = todayOnly ? { today_only: 'True' } : {};
+  const res = await API.get(STOCK_ENTRIES_PATH, { params });
   const json = res.data;
   const data = Array.isArray(json?.data) ? json.data : [];
   return data as StockEntry[];

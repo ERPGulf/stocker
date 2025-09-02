@@ -1,15 +1,26 @@
 import { getWarehouses, Warehouse } from '@/lib/api/warehouses';
 import { useWarehouse } from '@/lib/state/warehouse';
+import { selectUserDetails } from '@/redux/Slices/UserSlice';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Modal, Platform, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSelector } from 'react-redux';
 
 export default function WarehouseScreen() {
   const router = useRouter();
-  const { selectedWarehouse, setSelectedWarehouse, shelf, setShelf, token, authLoading } = useWarehouse();
+  const { 
+    selectedWarehouse, 
+    setSelectedWarehouse, 
+    shelf, 
+    setShelf,
+    token,
+    authLoading 
+  } = useWarehouse();
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const userDetails = useSelector(selectUserDetails);
+  const fullName = userDetails?.fullName;
   const [showWarehousePicker, setShowWarehousePicker] = useState(false);
 
   const showAlert = (title: string, msg: string) => {
@@ -40,12 +51,15 @@ export default function WarehouseScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.card}>
+       <Text style={styles.name}>Hi, {fullName}</Text>
         <Text style={styles.title}>Warehouse</Text>
 
         {(loading || authLoading) && (
           <View style={styles.loadingRow}><ActivityIndicator /><Text style={{ marginLeft: 8 }}>Loading…</Text></View>
         )}
         {error && <Text style={{ color: 'red', marginBottom: 8 }}>{error}</Text>}
+
+        
 
         {/* Dropdown trigger */}
         <TouchableOpacity
@@ -121,6 +135,20 @@ export default function WarehouseScreen() {
         >
           <Text style={styles.buttonText}>List today's entry</Text>
         </TouchableOpacity>
+        {/* Scan Barcode Button */}
+        <TouchableOpacity 
+          style={[styles.button, !((selectedWarehouse) && shelf) && { opacity: 0.6 }]}
+          onPress={() => {
+            if (!selectedWarehouse || !shelf) {
+              showAlert('Selection required', 'Please select warehouse and shelf to continue.');
+              return;
+            }
+            router.push('/(tabs)/scanning');
+          }}
+        >
+          <Text style={styles.buttonText}>Scan Item</Text>
+        </TouchableOpacity>
+        <View style={{ height: 16 }} />
       </View>
     </View>
   );
@@ -141,9 +169,16 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   title: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: '600',
     marginBottom: 12,
+    
+  },
+  name: {
+    fontSize: 24,
+    fontWeight: '800',
+    marginBottom: 12,
+    paddingBottom:15,
   },
   select: {
     borderWidth: 1,
@@ -198,14 +233,18 @@ const styles = StyleSheet.create({
     color: '#6b7280',
   },
   button: {
-    backgroundColor: '#2563eb',
-    borderRadius: 10,
-    paddingVertical: 12,
+    backgroundColor: '#007AFF',
+    padding: 12,
+    borderRadius: 8,
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 16,
+  },
+  scanButton: {
+    backgroundColor: '#34C759',
   },
   buttonText: {
-    color: '#fff',
-    fontWeight: '700',
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

@@ -13,7 +13,6 @@ export default function ItemDetails() {
   const [qty, setQty] = useState<string>('');
   const router = useRouter();
 
-  const totalQty = useMemo(() => Number(item?.total_qty ?? 0), [item?.total_qty]);
 
   useEffect(() => {
     const load = async () => {
@@ -60,10 +59,6 @@ export default function ItemDetails() {
         Alert.alert('Invalid quantity', 'Enter a positive number.');
         return;
       }
-      if (q > totalQty) {
-        Alert.alert('Quantity too high', `Quantity cannot exceed total qty (${totalQty}).`);
-        return;
-      }
       const warehouseId = selectedWarehouse?.warehouse_id ?? '';
       if (!warehouseId) {
         Alert.alert('Missing warehouse', 'Please select a warehouse first.');
@@ -91,8 +86,9 @@ export default function ItemDetails() {
       setLoading(true);
       setError(null);
       await createStockEntry(payload);
-      Alert.alert('Success', 'Stock entry created.');
-      router.push('/(tabs)/items');
+      Alert.alert('Success', 'Stock entry created.', [
+        { text: 'OK', onPress: () => router.push('/(tabs)/scanning') }
+      ]);
       setQty('');
     } catch (e: any) {
       setError(e?.message ?? 'Failed to create entry');
@@ -103,7 +99,7 @@ export default function ItemDetails() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Item details</Text>
+      <Text style={styles.title}>Item Details</Text>
       {(loading || authLoading) && <Text style={styles.muted}>{authLoading ? 'Authenticating…' : 'Loading…'}</Text>}
       {error && <Text style={[styles.muted, { color: 'red' }]}>{error}</Text>}
 
@@ -112,7 +108,7 @@ export default function ItemDetails() {
           <Row label="Total Qty" value={String(item.total_qty ?? 0)} />
           <Row label="Shelf Qty" value={String(item.shelf_qty ?? 0)} />
           <Row label="Item ID" value={String(item.item_id ?? '')} />
-          <Row label="Item name" value={String(item.item_name ?? '')} />
+          <Row label="Item Name" value={String(item.item_name ?? '')} />
           <Row label="UOM" value={String(item.uom ?? '')} />
           <View style={{ height: 12 }} />
           <Text style={styles.label}>Quantity </Text>
@@ -121,7 +117,7 @@ export default function ItemDetails() {
             keyboardType="numeric"
             value={qty}
             onChangeText={(t) => setQty(t.replace(/[^0-9.]/g, ''))}
-            placeholder={`Max ${totalQty}`}
+            placeholder="Enter quantity"
             placeholderTextColor="#6b7280"
           />
         </View>
