@@ -3,6 +3,8 @@ import { useWarehouse } from '@/lib/state/warehouse';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Button, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useSelector } from 'react-redux';
+import { selectName } from '@/redux/Slices/UserSlice';
 
 export default function ItemDetails() {
   const { barcode } = useLocalSearchParams<{ barcode?: string }>();
@@ -12,6 +14,7 @@ export default function ItemDetails() {
   const [error, setError] = useState<string | null>(null);
   const [qty, setQty] = useState<string>('');
   const router = useRouter();
+  const fullName = useSelector(selectName);
 
 
   useEffect(() => {
@@ -82,6 +85,7 @@ export default function ItemDetails() {
         barcode: b,
         shelf: sh,
         date_time: formatDateTime(new Date()),
+        employee: fullName || '',
       } as const;
       setLoading(true);
       setError(null);

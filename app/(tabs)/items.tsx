@@ -12,7 +12,7 @@ export default function Items() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [customAlert, setCustomAlert] = useState<{visible: boolean; title: string; message: string}>({visible: false, title: '', message: ''});
-  const [showTodayOnly, setShowTodayOnly] = useState<boolean>(false);
+  const [showTodayOnly, setShowTodayOnly] = useState<boolean>(true);
   const [editingItem, setEditingItem] = useState<StockEntry | null>(null);
   const [editForm, setEditForm] = useState<{
     item_code: string;
@@ -699,5 +699,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+    marginTop: 10,
   },
 });

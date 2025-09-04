@@ -77,14 +77,15 @@ export async function updateStockEntry(payload: UpdateStockPayload): Promise<Upd
 }
 // CREATE STOCK ENTRY
 export type CreateStockPayload = {
-  item_id: string; // API expects item_id 
+  item_id: string; 
   uom: string;
   qty: number;
   warehouse: string; 
   barcode: string;
   shelf: string;
-  date_time?: string; // 'YYYY-MM-DD HH:mm:ss'
-};
+  date_time?: string;
+  employee?: string;
+}; 
 
 export type CreateStockResponse = {
   data?: {
@@ -97,22 +98,26 @@ export type CreateStockResponse = {
     uom?: string;
     qty?: string | number;
     date?: string;
+    employee?: string;
   };
   [key: string]: any;
 };
 
 export async function createStockEntry(payload: CreateStockPayload): Promise<CreateStockResponse> {
-  const body = new URLSearchParams();
-  body.append('item_id', payload.item_id);
-  body.append('uom', payload.uom);
-  body.append('qty', String(payload.qty));
-  body.append('warehouse', payload.warehouse);
-  body.append('barcode', payload.barcode);
-  body.append('shelf', payload.shelf);
-  if (payload.date_time) body.append('date_time', payload.date_time);
+  const formData = new URLSearchParams();
+  console.log("payload",payload);
+  
+  // Add all payload fields to formData
+  Object.entries(payload).forEach(([key, value]) => {
+    if (value !== undefined) {
+      formData.append(key, String(value));
+    }
+  });
 
-  const res = await API.post(CREATE_ENTRY_PATH, body.toString());
+  const res = await API.post(CREATE_ENTRY_PATH, formData);
+  console.log("res.data",res.data)
   return res.data as CreateStockResponse;
+
 }
 
 // STOCK ENTRIES: list of created entries
