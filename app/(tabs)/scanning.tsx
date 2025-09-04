@@ -1,11 +1,8 @@
 import { Camera, CameraView } from "expo-camera";
-import { useRouter, useFocusEffect } from "expo-router";
-import React, { useState, useCallback, useEffect } from "react";
-import { Button, Dimensions, StyleSheet, Text, TextInput, View, Alert } from "react-native";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useState } from "react";
+import { Button, Dimensions, StyleSheet, Text, View } from "react-native";
 import Svg, { Defs, Mask, Rect } from "react-native-svg";
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useDispatch, useSelector } from 'react-redux';
-import { selectQrCodeData, setQrCodeData } from '@/redux/Slices/UserSlice';
 
 export default function Scanning() {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
@@ -13,8 +10,6 @@ export default function Scanning() {
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [barcode, setBarcode] = useState("");
   const router = useRouter();
-  const dispatch = useDispatch();
-  const storedQrCode = useSelector(selectQrCodeData);
 
   // Request camera permission and start camera when component mounts
   useFocusEffect(
@@ -35,43 +30,11 @@ export default function Scanning() {
     }, [])
   );
 
-  const handleBarcodeScanned = async ({ type, data }: { type: string; data: string }) => {
-    try {
-      setScanned(true);
-      // Save to AsyncStorage
-      await AsyncStorage.setItem('@qrCodeData', data);
-      // Update Redux store
-      dispatch(setQrCodeData(data));
-      // Navigate to Item Details with scanned barcode
-      router.push({ pathname: "/(tabs)/itemDetails", params: { barcode: data } });
-    } catch (error) {
-      console.error('Error saving QR code:', error);
-      Alert.alert('Error', 'Failed to save QR code data');
-    }
+  const handleBarcodeScanned = ({ type, data }: { type: string; data: string }) => {
+    setScanned(true);
+    // Navigate to Item Details with scanned barcode
+    router.push({ pathname: "/(tabs)/itemDetails", params: { barcode: data } });
   };
-
-  // Check for existing QR code on mount
-  useEffect(() => {
-    const loadStoredQrCode = async () => {
-      try {
-        const storedData = await AsyncStorage.getItem('@qrCodeData');
-        if (storedData) {
-          dispatch(setQrCodeData(storedData));
-        }
-      } catch (error) {
-        console.error('Error loading QR code:', error);
-      }
-    };
-
-    loadStoredQrCode();
-  }, []);
-
-  // If we have a stored QR code and not currently scanning, redirect to item details
-  useEffect(() => {
-    if (storedQrCode && !scanned) {
-      router.push({ pathname: "/(tabs)/itemDetails", params: { barcode: storedQrCode } });
-    }
-  }, [storedQrCode, scanned]);
 
   if (hasPermission === null) {
     return (
