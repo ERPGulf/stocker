@@ -565,7 +565,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#e0e0e0',
     paddingVertical: 6,
     paddingHorizontal: 12,
-    borderRadius: 15,
+    borderRadius: 10,
   },
   toggleButtonActive: {
     backgroundColor: '#007AFF',
@@ -696,7 +696,7 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: 16,
     alignItems: 'center',
     marginBottom: 16,
     marginTop: 10,
