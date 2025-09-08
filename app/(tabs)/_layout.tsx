@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Alert, Image, Platform, SafeAreaView, StyleSheet } from 'react-native';
+import { Alert, Image, Platform, SafeAreaView, StyleSheet, View } from 'react-native';
+import AppHeader from '@/components/AppHeader';
 
 import { HapticTab } from '@/components/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
@@ -30,19 +31,22 @@ export default function TabLayout() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-        tabBarBackground: TabBarBackground,
-        tabBarStyle: Platform.select({
-          ios: {
-            position: 'absolute',
-          },
-          default: {},
-        }),
+    <View style={{ flex: 1 }}>
+      
+      <SafeAreaView style={styles.safeArea}>
+    
+      <Tabs
+        screenOptions={{
+          tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+          headerShown: false,
+          tabBarButton: HapticTab,
+          tabBarBackground: TabBarBackground,
+          tabBarStyle: Platform.select({
+            ios: {
+              position: 'absolute',
+            },
+            default: {},
+          }),
       }}>
       <Tabs.Screen
         name="home"
@@ -72,20 +76,27 @@ export default function TabLayout() {
         name="items"
         options={{
           title: 'Items',
-          tabBarIcon: ({ color }) => <Image source={require('@/assets/images/Items.png')} 
-          style={{ tintColor: color, width: 24, height: 24 }}  />,
+          tabBarIcon: ({ color }) => <Image source={require('@/assets/images/history.png')} 
+          style={{ tintColor: color, width: 24, height: 24 }}  /> ,
         }}
-        listeners={{ tabPress: guard }}
       />
-      
-    </Tabs>
-    </SafeAreaView>
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: 'Settings',
+          tabBarIcon: ({ color }) => <Image source={require('@/assets/images/settings.png')} 
+          style={{ tintColor: color, width: 24, height: 24 }}  /> ,
+        }}
+      />
+      </Tabs>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    marginTop: 20, // 👈 applies margin/padding to ALL screens
+    marginTop: 20, 
   },
 });

@@ -1,6 +1,6 @@
 import { getWarehouses, Warehouse } from '@/lib/api/warehouses';
 import { useWarehouse } from '@/lib/state/warehouse';
-import { selectUserDetails } from '@/redux/Slices/UserSlice';
+import { selectName} from '@/redux/Slices/UserSlice';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Modal, Platform, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -19,8 +19,8 @@ export default function WarehouseScreen() {
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const userDetails = useSelector(selectUserDetails);
-  const fullName = userDetails?.fullName;
+  const fullName = useSelector(selectName);
+
   const [showWarehousePicker, setShowWarehousePicker] = useState(false);
 
   const showAlert = (title: string, msg: string) => {
@@ -115,7 +115,7 @@ export default function WarehouseScreen() {
               showAlert('Select warehouse', 'Please select a warehouse first.');
               return;
             }
-            setShelf('Shelf A');
+            setShelf('Rack-10');
           }}
           style={styles.select}
         >

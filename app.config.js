@@ -11,7 +11,7 @@ export default {
   expo: {
     ...(appJson.expo || {}),
     "android": {
-      "package": "com.hibarineesh.stocker"
+      "package": "stocker"
     },
   },
   

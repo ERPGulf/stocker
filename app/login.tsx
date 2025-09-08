@@ -5,8 +5,8 @@ import React, { useCallback, useState } from "react";
 import { Alert, Button, Dimensions, StyleSheet, Text, View } from "react-native";
 import base64 from "react-native-base64";
 import Svg, { Defs, Mask, Rect } from "react-native-svg";
-import { useDispatch } from "react-redux";
-import { setBaseUrl, setFullname, setUserDetails, setUsername } from '../redux/Slices/UserSlice';
+import { useDispatch, useSelector } from "react-redux";
+import { setBaseUrl, setFullname, setUserDetails, setUsername, } from '../redux/Slices/UserSlice';
 
 export default function LoginScreen() {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
@@ -14,15 +14,34 @@ export default function LoginScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
 
-  // Request camera permission
+  // Check for existing login data and request camera permission
   useFocusEffect(
     useCallback(() => {
-      const startCamera = async () => {
-        setScanned(false);
-        const { status } = await Camera.requestCameraPermissionsAsync();
-        setHasPermission(status === "granted");
+      const checkExistingLogin = async () => {
+        try {
+          const storedData = await AsyncStorage.getItem('userLoginData');
+          if (storedData) {
+            const { api, fullName, userId } = JSON.parse(storedData);
+            if (api && fullName && userId) {
+              dispatch(setFullname(fullName));
+              dispatch(setUsername(userId));
+              dispatch(setBaseUrl(api));
+              router.replace('/(tabs)/home');
+              return;
+            }
+          }
+          // If no valid stored data, request camera permission
+          const { status } = await Camera.requestCameraPermissionsAsync();
+          setHasPermission(status === "granted");
+        } catch (error) {
+          console.error('Error checking existing login:', error);
+          const { status } = await Camera.requestCameraPermissionsAsync();
+          setHasPermission(status === "granted");
+        }
       };
-      startCamera();
+
+      checkExistingLogin();
+      setScanned(false);
     }, [])
   );
 
@@ -41,25 +60,38 @@ export default function LoginScreen() {
         const company = companyMatch[1];
         const employeeCode = employeeCodeMatch[1];
         const userId = userIdMatch[1];
-        console.log("userId",userId);
         const fullName = fullNameMatch[1].trim();
-        console.log("fullName",fullName);
-        const api = apiMatch[1];
-
-        // Store details
-        await AsyncStorage.setItem("baseUrl", api);
-        await AsyncStorage.setItem("userToken", "authenticated"); // Set the user token
+        
+        // Extract base URL (remove port, /api/, and any trailing slashes)
+        let apiUrl = apiMatch[1];
+        // First remove /api/ and everything after it
+        let baseUrl = apiUrl.replace(/\/api\/.*$/, '');
+        // Then remove port number if it exists
+        baseUrl = baseUrl.replace(/:\d+$/, '');
+        // Remove any trailing slashes
+        baseUrl = baseUrl.replace(/\/$/, '');
+        
+        // Store all login data with both full API URL and base URL
+        const loginData = {
+          company,
+          employeeCode,
+          fullName,
+          userId,
+          api: baseUrl, // Store only the base URL
+          fullApiUrl: apiUrl, // Keep full URL in case needed
+          timestamp: new Date().toISOString()
+        };
+        
+        await AsyncStorage.multiSet([
+          ["baseUrl", baseUrl],
+          ["userToken", "authenticated"],
+          ["userLoginData", JSON.stringify(loginData)]
+        ]);
+        
         dispatch(setFullname(fullName));
         dispatch(setUsername(userId));
-        dispatch(setBaseUrl(api));
-        dispatch(
-          setUserDetails({
-            company,
-            employeeCode,
-            fullName,
-            api,
-          })
-        );
+        dispatch(setBaseUrl(baseUrl));
+        dispatch(setUserDetails(loginData));
 
         // Navigate to tabs index page
         router.replace('/(tabs)/home');
@@ -77,6 +109,12 @@ export default function LoginScreen() {
     handleQRCodeData(data);
   };
 
+  // Manual logout function if needed
+  const handleManualLogin = () => {
+    AsyncStorage.removeItem('userLoginData');
+    setScanned(false);
+  };
+
   if (hasPermission === null) {
     return (
       <View style={styles.center}>
@@ -87,7 +125,14 @@ export default function LoginScreen() {
   if (hasPermission === false) {
     return (
       <View style={styles.center}>
-        <Text>No access to camera. Please enable camera permissions in your device settings.</Text>
+        <Text style={{ textAlign: 'center', marginBottom: 20 }}>No access to camera. Please enable camera permissions in your device settings.</Text>
+        <Button 
+          title="Try Again" 
+          onPress={async () => {
+            const { status } = await Camera.requestCameraPermissionsAsync();
+            setHasPermission(status === "granted");
+          }} 
+        />
       </View>
     );
   }

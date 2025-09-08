@@ -12,7 +12,7 @@ export default function Items() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [customAlert, setCustomAlert] = useState<{visible: boolean; title: string; message: string}>({visible: false, title: '', message: ''});
-  const [showTodayOnly, setShowTodayOnly] = useState<boolean>(false);
+  const [showTodayOnly, setShowTodayOnly] = useState<boolean>(true);
   const [editingItem, setEditingItem] = useState<StockEntry | null>(null);
   const [editForm, setEditForm] = useState<{
     item_code: string;
@@ -565,7 +565,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#e0e0e0',
     paddingVertical: 6,
     paddingHorizontal: 12,
-    borderRadius: 15,
+    borderRadius: 10,
   },
   toggleButtonActive: {
     backgroundColor: '#007AFF',
@@ -696,8 +696,9 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: 16,
     alignItems: 'center',
     marginBottom: 16,
+    marginTop: 10,
   },
 });

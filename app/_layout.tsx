@@ -11,6 +11,7 @@ import { PersistGate } from 'redux-persist/integration/react';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { WarehouseProvider } from '@/lib/state/warehouse';
 import { store, persistor } from '@/redux/Store';
+import AppHeader from '@/components/AppHeader';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -28,6 +29,7 @@ export default function RootLayout() {
       <PersistGate loading={null} persistor={persistor}>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
           <WarehouseProvider>
+            <AppHeader />
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="index" />
               <Stack.Screen name="login" />

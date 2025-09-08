@@ -1,8 +1,10 @@
 import { createStockEntry, getItemByBarcode, ItemDetail } from '@/lib/api/items';
 import { useWarehouse } from '@/lib/state/warehouse';
+import { selectName } from '@/redux/Slices/UserSlice';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, Button, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useSelector } from 'react-redux';
 
 export default function ItemDetails() {
   const { barcode } = useLocalSearchParams<{ barcode?: string }>();
@@ -11,8 +13,34 @@ export default function ItemDetails() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [qty, setQty] = useState<string>('');
+  const [showSuccess, setShowSuccess] = useState(false);
   const router = useRouter();
+  const fullName = useSelector(selectName);
 
+
+  useEffect(() => {
+    if (showSuccess) {
+      const timer = setTimeout(() => {
+        Alert.alert(
+          'Success', 
+          'Stock entry created successfully!',
+          [
+            { 
+              text: 'OK', 
+              onPress: () => {
+                setQty('');
+                setShowSuccess(false);
+                router.replace('/(tabs)/scanning');
+              }
+            }
+          ],
+          { cancelable: false }
+        );
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [showSuccess, router]);
 
   useEffect(() => {
     const load = async () => {
@@ -50,46 +78,80 @@ export default function ItemDetails() {
 
   const onSubmit = async () => {
     try {
-      if (!item) return;
+      if (!item) {
+        Alert.alert('Error', 'No item selected');
+        return;
+      }
+      
+      // Validate token
       if (!token) {
         await refreshToken();
+        if (!token) {
+          Alert.alert('Authentication Error', 'Please login again');
+          return;
+        }
       }
+      
+      // Validate quantity
       const q = Number(qty);
-      if (!q || q <= 0 || !Number.isFinite(q)) {
-        Alert.alert('Invalid quantity', 'Enter a positive number.');
+      if (isNaN(q) || q <= 0) {
+        Alert.alert('Invalid Quantity', 'Please enter a valid quantity greater than 0');
         return;
       }
-      const warehouseId = selectedWarehouse?.warehouse_id ?? '';
-      if (!warehouseId) {
-        Alert.alert('Missing warehouse', 'Please select a warehouse first.');
-        return;
-      }
-      const sh = shelf ?? '';
+      
+      // Validate shelf
+      const sh = shelf?.trim() || '';
       if (!sh) {
-        Alert.alert('Missing shelf', 'Please select a shelf first.');
+        Alert.alert('Shelf Required', 'Please enter a shelf number');
         return;
       }
+      
+      // Validate barcode
       const b = typeof barcode === 'string' ? barcode : '';
       if (!b) {
         Alert.alert('Missing barcode', 'No barcode provided.');
         return;
       }
+      
+      // Prepare payload
       const payload = {
         item_id: String(item.item_id ?? ''),
         uom: String(item.uom ?? ''),
         qty: q,
-        warehouse: warehouseId,
+        warehouse: selectedWarehouse?.warehouse_id ?? '',
         barcode: b,
         shelf: sh,
         date_time: formatDateTime(new Date()),
-      } as const;
+        employee: fullName || '',
+      };
+      
       setLoading(true);
       setError(null);
-      await createStockEntry(payload);
-      Alert.alert('Success', 'Stock entry created.', [
-        { text: 'OK', onPress: () => router.push('/(tabs)/scanning') }
-      ]);
-      setQty('');
+      
+      // Make API call
+      const response = await createStockEntry(payload);
+      
+      if (response?.data?.status === 'success') {
+        console.log("API call successful, showing alert...");
+        
+        // Use React Native's Alert component
+        Alert.alert(
+          'Success',
+          'Stock entry created successfully!',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                setQty('');
+                router.replace('/(tabs)/scanning');
+              },
+            },
+          ],
+          { cancelable: false }
+        );
+      } else {
+        throw new Error(response?.message || 'Failed to create stock entry');
+      }
     } catch (e: any) {
       setError(e?.message ?? 'Failed to create entry');
     } finally {

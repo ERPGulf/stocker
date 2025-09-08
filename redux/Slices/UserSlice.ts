@@ -3,10 +3,11 @@ import { createSlice } from '@reduxjs/toolkit';
 interface UserState {
   username: string | null;
   fullname: string | null;
-  userDetails: any; // Replace 'any' with the actual type of userDetails if known
+  userDetails: any;
   baseUrl: string | null;
   fileId: string | null;
   isWfh: boolean;
+  qrCodeData: string | null;
 }
 
 
@@ -17,6 +18,7 @@ const initialState = {
   baseUrl: null,
   fileId: null,
   isWfh: false,
+  qrCodeData: null,
 };
 
 export const UserSlice = createSlice({
@@ -42,12 +44,16 @@ export const UserSlice = createSlice({
     setIsWfh: (state, action) => {
       state.isWfh = action.payload;
     },
+    setQrCodeData: (state, action) => {
+      state.qrCodeData = action.payload;
+    },
   },
 });
 
 export const {
   setUsername,
   setFullname,
+  setQrCodeData,
   setUserDetails,
   setBaseUrl,
   setFileid,
@@ -60,5 +66,6 @@ export const selectFileid = (state: { user: UserState }) => state.user.fileId;
 export const selectIsWfh = (state: { user: UserState }) => state.user.isWfh;
 export const selectName = (state: { user: UserState }) => state.user.fullname;
 export const selectUserDetails = (state: { user: UserState }) => state.user.userDetails;
-export const selectEmployeeCode = (state: { user: UserState }) => state.user.userDetails.employeeCode;
+export const selectEmployeeCode = (state: { user: UserState }) => state.user.userDetails?.employee_code;
+export const selectQrCodeData = (state: { user: UserState }) => state.user.qrCodeData;
 export default UserSlice.reducer;
