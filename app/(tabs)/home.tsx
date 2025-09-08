@@ -115,7 +115,7 @@ export default function WarehouseScreen() {
               showAlert('Select warehouse', 'Please select a warehouse first.');
               return;
             }
-            setShelf('Shelf A');
+            setShelf('Rack-10');
           }}
           style={styles.select}
         >

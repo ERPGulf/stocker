@@ -61,27 +61,36 @@ export default function LoginScreen() {
         const employeeCode = employeeCodeMatch[1];
         const userId = userIdMatch[1];
         const fullName = fullNameMatch[1].trim();
-        const api = apiMatch[1];
-
-        // Store all login data
+        
+        // Extract base URL (remove port, /api/, and any trailing slashes)
+        let apiUrl = apiMatch[1];
+        // First remove /api/ and everything after it
+        let baseUrl = apiUrl.replace(/\/api\/.*$/, '');
+        // Then remove port number if it exists
+        baseUrl = baseUrl.replace(/:\d+$/, '');
+        // Remove any trailing slashes
+        baseUrl = baseUrl.replace(/\/$/, '');
+        
+        // Store all login data with both full API URL and base URL
         const loginData = {
           company,
           employeeCode,
           fullName,
           userId,
-          api,
+          api: baseUrl, // Store only the base URL
+          fullApiUrl: apiUrl, // Keep full URL in case needed
           timestamp: new Date().toISOString()
         };
         
         await AsyncStorage.multiSet([
-          ["baseUrl", api],
+          ["baseUrl", baseUrl],
           ["userToken", "authenticated"],
           ["userLoginData", JSON.stringify(loginData)]
         ]);
         
         dispatch(setFullname(fullName));
         dispatch(setUsername(userId));
-        dispatch(setBaseUrl(api));
+        dispatch(setBaseUrl(baseUrl));
         dispatch(setUserDetails(loginData));
 
         // Navigate to tabs index page

@@ -1,3 +1,6 @@
+import { store } from '@/redux/Store';
+import { selectBaseUrl } from "@/redux/Slices/UserSlice";
+
 export type TokenResponse = {
     data?: {
       access_token?: string;
@@ -8,9 +11,20 @@ export type TokenResponse = {
     };
     [key: string]: any;
   };
-  
-  const GENERATE_TOKEN_URL =
-    "https://aysha.erpgulf.com/api/method/gpos.gpos.pos.generate_token_secure";
+
+// Function to get the current base URL from Redux store
+const getBaseUrl = (): string => {
+  const state = store.getState();
+  return selectBaseUrl(state) || '';
+};
+
+const GENERATE_TOKEN_PATH = '/api/method/gpos.gpos.pos.generate_token_secure';
+
+// Function to get the full token URL
+const getTokenUrl = (): string => {
+  const baseURL = getBaseUrl();
+  return baseURL ? `${baseURL}${GENERATE_TOKEN_PATH}` : '';
+};
   
   export async function generateToken(): Promise<{
     access_token: string;
@@ -31,35 +45,37 @@ export type TokenResponse = {
     body.append("api_secret", api_secret);
     body.append("app_key", app_key);
   
-    const res = await fetch(GENERATE_TOKEN_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        Cookie:
-          "full_name=Guest; sid=Guest; system_user=no; user_id=Guest; user_image=",
-      },
-      body: body.toString(), // send as form-urlencoded
-    });
-
-  
-    const text = await res.text();
-  
-    let json: TokenResponse;
     try {
-      json = JSON.parse(text);
-    } catch {
-      throw new Error(`generateToken failed: Response was not JSON -> ${text}`);
-    }
-  
-    const access_token = json?.data?.access_token ?? "";
-    const expires_in = Number(json?.data?.expires_in ?? 0);
-  
-    if (!access_token) {
-      console.warn("⚠️ No access_token in response");
+      const tokenUrl = getTokenUrl();
+      if (!tokenUrl) {
+        console.warn('Base URL is not set');
+        return null;
+      }
+      
+      const response = await fetch(tokenUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Cookie: "full_name=Guest; sid=Guest; system_user=no; user_id=Guest; user_image=",
+        },
+        body: body.toString(), // send as form-urlencoded
+      });
+
+      const data: TokenResponse = await response.json();
+      const accessToken = data?.data?.access_token;
+
+      if (!accessToken) {
+        console.warn("[auth] No access token in response", data);
+        return null;
+      }
+
+      // Calculate expiry time (default to 1 hour if not provided)
+      const expiresIn = data?.data?.expires_in || 3600;
+      const expiresAt = Date.now() + expiresIn * 1000;
+
+      return { access_token: accessToken, expires_at: expiresAt };
+    } catch (error) {
+      console.error("[auth] Error generating token:", error);
       return null;
     }
-  
-    const now = Math.floor(Date.now() / 1000);
-    return { access_token, expires_at: now + expires_in - 30 };
   }
-  
