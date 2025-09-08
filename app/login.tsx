@@ -60,9 +60,7 @@ export default function LoginScreen() {
         const company = companyMatch[1];
         const employeeCode = employeeCodeMatch[1];
         const userId = userIdMatch[1];
-        console.log("userId",userId);
         const fullName = fullNameMatch[1].trim();
-        console.log("fullName",fullName);
         const api = apiMatch[1];
 
         // Store all login data

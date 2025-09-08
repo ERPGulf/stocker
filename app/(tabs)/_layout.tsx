@@ -76,7 +76,16 @@ export default function TabLayout() {
         name="items"
         options={{
           title: 'Items',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="list.bullet" color={color} />,
+          tabBarIcon: ({ color }) => <Image source={require('@/assets/images/history.png')} 
+          style={{ tintColor: color, width: 24, height: 24 }}  /> ,
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: 'Settings',
+          tabBarIcon: ({ color }) => <Image source={require('@/assets/images/settings.png')} 
+          style={{ tintColor: color, width: 24, height: 24 }}  /> ,
         }}
       />
       </Tabs>
@@ -88,6 +97,6 @@ export default function TabLayout() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    marginTop: 20, // 👈 applies margin/padding to ALL screens
+    marginTop: 20, 
   },
 });
