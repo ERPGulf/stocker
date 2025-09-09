@@ -5,7 +5,7 @@ import React, { useCallback, useState } from "react";
 import { Alert, Button, Dimensions, StyleSheet, Text, View } from "react-native";
 import base64 from "react-native-base64";
 import Svg, { Defs, Mask, Rect } from "react-native-svg";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { setBaseUrl, setFullname, setUserDetails, setUsername, } from '../redux/Slices/UserSlice';
 
 export default function LoginScreen() {
@@ -61,15 +61,10 @@ export default function LoginScreen() {
         const employeeCode = employeeCodeMatch[1];
         const userId = userIdMatch[1];
         const fullName = fullNameMatch[1].trim();
-        
-        // Extract base URL (remove port, /api/, and any trailing slashes)
-        let apiUrl = apiMatch[1];
-        // First remove /api/ and everything after it
-        let baseUrl = apiUrl.replace(/\/api\/.*$/, '');
-        // Then remove port number if it exists
-        baseUrl = baseUrl.replace(/:\d+$/, '');
-        // Remove any trailing slashes
-        baseUrl = baseUrl.replace(/\/$/, '');
+
+        const api = apiMatch[1];
+        console.log("apiUrl",api)
+      
         
         // Store all login data with both full API URL and base URL
         const loginData = {
@@ -77,20 +72,19 @@ export default function LoginScreen() {
           employeeCode,
           fullName,
           userId,
-          api: baseUrl, // Store only the base URL
-          fullApiUrl: apiUrl, // Keep full URL in case needed
+          api, // Store only the base URL
           timestamp: new Date().toISOString()
         };
         
         await AsyncStorage.multiSet([
-          ["baseUrl", baseUrl],
+          ["api", api],
           ["userToken", "authenticated"],
           ["userLoginData", JSON.stringify(loginData)]
         ]);
         
         dispatch(setFullname(fullName));
         dispatch(setUsername(userId));
-        dispatch(setBaseUrl(baseUrl));
+        dispatch(setBaseUrl(api));
         dispatch(setUserDetails(loginData));
 
         // Navigate to tabs index page
