@@ -18,7 +18,7 @@ const getBaseUrl = (): string => {
   return selectBaseUrl(state) || '';
 };
 
-const GENERATE_TOKEN_PATH = '/api/method/gpos.gpos.pos.generate_token_secure';
+const GENERATE_TOKEN_PATH = 'api/method/gpos.gpos.pos.generate_token_secure';
 
 // Function to get the full token URL
 const getTokenUrl = (): string => {

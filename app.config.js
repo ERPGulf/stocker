@@ -5,14 +5,19 @@ import 'dotenv/config';
 import appJson from './app.json';
 
 export default {
-  // Spread your existing Expo config
   ...appJson,
-  // Ensure we export an object with an `expo` key as expected by Expo
   expo: {
     ...(appJson.expo || {}),
-    "android": {
-      "package": "stocker"
+    android: {
+      package: "com.hibarineesh.stocker"
     },
-  },
-  
+    ios: {
+      bundleIdentifier: "com.hibarineesh.stocker"
+    },
+    extra: {
+      eas: {
+        projectId: "00b3ee89-7a73-4ee5-9dde-43b99ec4b2e0"
+      }
+    }
+  }
 };

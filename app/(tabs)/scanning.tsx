@@ -135,7 +135,7 @@ export default function Scanning() {
               style={styles.input}
               value={barcode}
               onChangeText={setBarcode}
-              placeholder="Enter barcode number"
+              placeholder="Enter barcode"
               placeholderTextColor="#999"
               autoFocus
               keyboardType="default"

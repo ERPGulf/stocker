@@ -1,9 +1,9 @@
 import { deleteStockEntry, listStockEntries, StockEntry, updateStockEntry } from '@/lib/api/items';
-import { getAccessToken } from '@/lib/http/tokenStore';
 import { useWarehouse } from '@/lib/state/warehouse';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Image, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, Image, Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 export default function Items() {
   const router = useRouter();
@@ -14,6 +14,7 @@ export default function Items() {
   const [customAlert, setCustomAlert] = useState<{visible: boolean; title: string; message: string}>({visible: false, title: '', message: ''});
   const [showTodayOnly, setShowTodayOnly] = useState<boolean>(true);
   const [editingItem, setEditingItem] = useState<StockEntry | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [editForm, setEditForm] = useState<{
     item_code: string;
     barcode: string;
@@ -27,21 +28,17 @@ export default function Items() {
     qty: '',
     uom: 'Nos',
     shelf: '',
-    date: new Date().toISOString().split('T')[0],
+    date: new Date().toISOString(),
   });
 
-  const load = async () => {
+  
+
+  const load = async (forceShowAll: boolean = false) => {
     try {
       setLoading(true);
       setError(null);
-      const warehouseId = selectedWarehouse?.warehouse_id;
-      if (!warehouseId) {
-        setItems([]);
-        setError('Please select a warehouse first');
-        return;
-      }
-      // Data fetch; Authorization is attached by Axios interceptor
-      const entries = await listStockEntries(showTodayOnly);
+      // Use forceShowAll if provided, otherwise use showTodayOnly state
+      const entries = await listStockEntries(forceShowAll ? false : showTodayOnly);
       setItems(entries);
     } catch (e: any) {
       setError(e?.message ?? 'Failed to load items');
@@ -102,6 +99,19 @@ export default function Items() {
     );
   };
 
+  const formatDateForBackend = (date: Date): string => {
+    // Format: YYYY-MM-DD HH:mm:ss
+    const pad = (num: number) => num.toString().padStart(2, '0');
+    const year = date.getFullYear();
+    const month = pad(date.getMonth() + 1);
+    const day = pad(date.getDate());
+    const hours = pad(date.getHours());
+    const minutes = pad(date.getMinutes());
+    const seconds = pad(date.getSeconds());
+    
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  };
+
   const handleUpdateItem = async (item: StockEntry) => {
     if (!item.entry_id) {
       const errorMsg = 'Cannot update: No entry ID provided';
@@ -109,7 +119,7 @@ export default function Items() {
       Alert.alert('Error', errorMsg);
       return;
     }
-
+  
     const updateAfterConfirm = async () => {
       try {
         console.log('Updating entry:', item);
@@ -118,7 +128,7 @@ export default function Items() {
           warehouse: item.warehouse || '',
           barcode: item.barcode || '',
           shelf: item.shelf || '',
-          date: item.date || new Date().toISOString(),
+          date: formatDateForBackend(new Date()), // Always use current date and time for updates in YYYY-MM-DD HH:mm:ss format
           item_code: item.item_code || '',
           uom: item.uom || 'Nos',
           qty: item.qty || 0
@@ -127,9 +137,10 @@ export default function Items() {
         console.log('Update result:', result);
         
         if (result?.status === 'success') {
-          // Refresh the list after successful update
-          load();
-          showAlert('Success', 'Entry updated successfully');
+          console.log('Update result:', result);
+          // Force show all items after update to ensure the updated item is visible
+          await load(true);  // Pass true to force show all items
+          showAlert('Success', 'Entry updatedd successfully');
         } else {
           showAlert('Error', result?.message || 'Failed to update entry');
         }
@@ -139,7 +150,7 @@ export default function Items() {
       }
     };
     
-    // Show confirmation dialog
+    // Rest of the function remains the same
     Alert.alert(
       'Update Entry',
       'Are you sure you want to update this entry?',
@@ -157,7 +168,7 @@ export default function Items() {
       ]
     );
   };
-
+  
   const handleDelete = async (entry_id: string) => {
     
     if (!entry_id) {
@@ -170,17 +181,6 @@ export default function Items() {
     try {
       setError(null);
       setLoading(true);
-      
-      // Ensure we have a valid token
-      let currentToken = token;
-      if (!currentToken) {
-        console.log('No token found, attempting to refresh...');
-        await refreshToken();
-        currentToken = getAccessToken(); // Get the updated token after refresh
-        if (!currentToken) {
-          throw new Error('Authentication required. Please log in again.');
-        }
-      }
       
       console.log('Deleting entry with ID:', entry_id);
       const result = await deleteStockEntry(entry_id);
@@ -243,7 +243,7 @@ export default function Items() {
       qty: String(item.qty || ''),
       uom: item.uom || 'Nos',
       shelf: item.shelf || '',
-      date: item.date ? new Date(item.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      date: item.date ? new Date(item.date).toISOString() : new Date().toISOString(),
     });
   };
 
@@ -252,6 +252,21 @@ export default function Items() {
 
     try {
       setLoading(true);
+      
+      const formatDateTime = (d: Date) => {
+        const pad = (n: number) => n.toString().padStart(2, '0');
+        const yyyy = d.getFullYear();
+        const MM = pad(d.getMonth() + 1);
+        const dd = pad(d.getDate());
+        const hh = pad(d.getHours());
+        const mm = pad(d.getMinutes());
+        const ss = pad(d.getSeconds());
+        return `${yyyy}-${MM}-${dd} ${hh}:${mm}:${ss}`;
+      };
+      
+      const formattedDate = formatDateTime(new Date(editForm.date));
+      console.log('Date being saved:', formattedDate);
+      
       const response = await updateStockEntry({
         entry_id: editingItem.entry_id,
         item_code: editForm.item_code,
@@ -259,7 +274,7 @@ export default function Items() {
         qty: Number(editForm.qty) || 0,
         uom: editForm.uom,
         shelf: editForm.shelf,
-        date: editForm.date,
+        date: formattedDate,
         warehouse: editingItem.warehouse || '',
       });
 
@@ -407,13 +422,29 @@ export default function Items() {
             </View>
 
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Date</Text>
-              <TextInput
-                style={styles.input}
-                value={editForm.date}
-                onChangeText={(text) => setEditForm(prev => ({ ...prev, date: text }))}
-                placeholder="YYYY-MM-DD"
-              />
+              <Text style={styles.label}>Date & Time</Text>
+              <TouchableOpacity 
+                style={styles.dateInput}
+                onPress={() => setShowDatePicker(true)}
+              >
+                <Text>{new Date(editForm.date).toLocaleString()}</Text>
+              </TouchableOpacity>
+              {showDatePicker && (
+                <DateTimePicker
+                  value={new Date(editForm.date)}
+                  mode="datetime"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={(event, selectedDate) => {
+                    setShowDatePicker(false);
+                    if (selectedDate) {
+                      setEditForm(prev => ({
+                        ...prev,
+                        date: selectedDate.toISOString()
+                      }));
+                    }
+                  }}
+                />
+              )}
             </View>
 
             <View style={styles.modalButtons}>
@@ -662,10 +693,24 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 5,
+    borderColor: '#ccc',
+    borderRadius: 4,
     padding: 10,
-    fontSize: 16,
+    marginBottom: 10,
+    width: '100%',
+  },
+  dateInput: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 4,
+    padding: 12,
+    marginBottom: 10,
+    width: '100%',
+    backgroundColor: '#f8f8f8',
+  },
+  datePicker: {
+    width: '100%',
+    marginTop: 10,
   },
   modalButtons: {
     flexDirection: 'row',

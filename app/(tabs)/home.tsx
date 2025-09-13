@@ -33,7 +33,7 @@ export default function WarehouseScreen() {
 
   useEffect(() => {
     const load = async () => {
-      if (authLoading || !token) return; // wait for token
+     // if (authLoading || !token) return; // wait for token
       try {
         setLoading(true);
         setError(null);

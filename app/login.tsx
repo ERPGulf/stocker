@@ -45,10 +45,16 @@ export default function LoginScreen() {
     }, [])
   );
 
+  function decodeBase64Utf8(base64String: string): string {
+  const binary = atob(base64String);
+  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  return new TextDecoder("utf-8").decode(bytes);
+}
+
   // Decode and handle QR data
   const handleQRCodeData = async (data: string) => {
     try {
-      const value = base64.decode(data);
+      const value = decodeBase64Utf8(data);
       const companyMatch = value.match(/Company: (\w+)/);
       const employeeCodeMatch = value.match(/Employee_Code: ([\w-]+)/);
       const userIdMatch = value.match(/User_id: ([\w@.-]+)/);

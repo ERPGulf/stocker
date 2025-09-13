@@ -4,12 +4,15 @@ import { useRouter } from 'expo-router';
 import { useSelector, useDispatch } from 'react-redux';
 import UserSlice, { selectName, selectUserDetails } from '@/redux/Slices/UserSlice';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useWarehouse } from '@/lib/state/warehouse';
 
 const Settings = () => {
   const router = useRouter();
   const dispatch = useDispatch();
   const username = useSelector(selectName);
   const userDetails = useSelector(selectUserDetails);
+
+  const { setSelectedWarehouse, setShelf } = useWarehouse();
 
   const handleLogout = async () => {
     try {
@@ -18,6 +21,10 @@ const Settings = () => {
       
       // Reset Redux state
       dispatch({ type: 'user/logout' });
+      
+      // Clear warehouse and rack data
+      setSelectedWarehouse(null);
+      setShelf(null);
       
       // Navigate to the welcome screen
       router.replace('/');

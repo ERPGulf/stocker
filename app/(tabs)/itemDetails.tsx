@@ -84,13 +84,13 @@ export default function ItemDetails() {
       }
       
       // Validate token
-      if (!token) {
-        await refreshToken();
-        if (!token) {
-          Alert.alert('Authentication Error', 'Please login again');
-          return;
-        }
-      }
+      //if (!token) {
+      //  await refreshToken();
+      //  if (!token) {
+      //    Alert.alert('Authentication Error', 'Please login again');
+      //    return;
+      //  }
+      //}
       
       // Validate quantity
       const q = Number(qty);
@@ -132,6 +132,7 @@ export default function ItemDetails() {
       const response = await createStockEntry(payload);
       
       if (response?.data?.status === 'success') {
+        console.log("response", response.data);
         console.log("API call successful, showing alert...");
         
         // Use React Native's Alert component
