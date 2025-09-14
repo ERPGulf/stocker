@@ -2,14 +2,12 @@ import React, { useEffect } from 'react';
 import { StyleSheet, View, Text, Image, TouchableOpacity, SafeAreaView, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useWarehouse } from '@/lib/state/warehouse';
 import { Colors } from '@/constants/Colors';
 
 const { width } = Dimensions.get('window');
 
 export default function WelcomeScreen() {
   const router = useRouter();
-  const { token } = useWarehouse();
 
 
 
