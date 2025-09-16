@@ -1,11 +1,11 @@
-import { Camera, CameraView } from "expo-camera";
+import { Camera, CameraView, useCameraPermissions } from "expo-camera";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import { Button, Dimensions, StyleSheet, Text, View, TextInput, KeyboardAvoidingView, Platform } from "react-native";
 import Svg, { Defs, Mask, Rect } from "react-native-svg";
 
 export default function Scanning() {
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [barcode, setBarcode] = useState("");
@@ -21,34 +21,33 @@ export default function Scanning() {
     }
   };
 
-  // 🔹 FIX: properly handle camera lifecycle with useFocusEffect
+  // Handle camera permission and lifecycle with useFocusEffect
   useFocusEffect(
     useCallback(() => {
       let isMounted = true;
 
       const startCamera = async () => {
         try {
-          const { status } = await Camera.requestCameraPermissionsAsync();
-          if (status === "granted" && isMounted) {
-            setHasPermission(true);
+          if (!permission?.granted) {
+            await requestPermission();
+          }
+          
+          if (permission?.granted && isMounted) {
             setIsCameraActive(true);
             setScanned(false); // reset scanner when screen is focused
-          } else {
-            setHasPermission(false);
           }
         } catch (error) {
-          console.error("Error requesting camera permission:", error);
+          console.error("Error with camera permission:", error);
         }
       };
 
       startCamera();
 
       return () => {
-        // cleanup when leaving screen
         isMounted = false;
         setIsCameraActive(false);
       };
-    }, [])
+    }, [permission, requestPermission])
   );
 
   const handleBarcodeScanned = ({ type, data }: { type: string; data: string }) => {
@@ -59,17 +58,24 @@ export default function Scanning() {
     }
   };
 
-  if (hasPermission === null) {
+  if (!permission) {
     return (
       <View style={styles.center}>
         <Text>Requesting camera permission…</Text>
       </View>
     );
   }
-  if (hasPermission === false) {
+
+  if (!permission.granted) {
     return (
       <View style={styles.center}>
-        <Text>No access to camera. Please enable camera permissions in your device settings.</Text>
+        <Text style={{ textAlign: 'center', marginBottom: 20 }}>
+          No access to camera. Please enable camera permissions in your device settings.
+        </Text>
+        <Button 
+          title="Grant Permission" 
+          onPress={requestPermission}
+        />
       </View>
     );
   }
@@ -135,7 +141,7 @@ export default function Scanning() {
               style={styles.input}
               value={barcode}
               onChangeText={setBarcode}
-              placeholder="Enter barcode number"
+              placeholder="Enter barcode"
               placeholderTextColor="#999"
               autoFocus
               keyboardType="default"
