@@ -71,6 +71,13 @@ export default function TabLayout() {
           title: 'Item Details',
         }}
       />
+      <Tabs.Screen
+        name="QRscan"
+        options={{
+          href: null, // This hides the tab from the tab bar
+          title: 'Item Details',
+        }}
+      />
       
       <Tabs.Screen
         name="items"

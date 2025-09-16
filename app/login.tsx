@@ -1,15 +1,15 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Camera, CameraView } from "expo-camera";
+import { Camera, CameraView, useCameraPermissions } from "expo-camera";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
-import { Alert, Button, Dimensions, StyleSheet, Text, View } from "react-native";
-import base64 from "react-native-base64";
+import { Alert, Button, Dimensions, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Svg, { Defs, Mask, Rect } from "react-native-svg";
 import { useDispatch } from "react-redux";
 import { setBaseUrl, setFullname, setUserDetails, setUsername, } from '../redux/Slices/UserSlice';
+import * as ImagePicker from 'expo-image-picker';
 
 export default function LoginScreen() {
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const router = useRouter();
   const dispatch = useDispatch();
@@ -30,19 +30,18 @@ export default function LoginScreen() {
               return;
             }
           }
-          // If no valid stored data, request camera permission
-          const { status } = await Camera.requestCameraPermissionsAsync();
-          setHasPermission(status === "granted");
+          // Request camera permission if not already granted
+          if (!permission?.granted) {
+            await requestPermission();
+          }
         } catch (error) {
-          console.error('Error checking existing login:', error);
-          const { status } = await Camera.requestCameraPermissionsAsync();
-          setHasPermission(status === "granted");
+          console.error('Error in checkExistingLogin:', error);
         }
       };
 
       checkExistingLogin();
       setScanned(false);
-    }, [])
+    }, [permission, requestPermission])
   );
 
   function decodeBase64Utf8(base64String: string): string {
@@ -115,66 +114,113 @@ export default function LoginScreen() {
     setScanned(false);
   };
 
-  if (hasPermission === null) {
+  if (!permission) {
     return (
       <View style={styles.center}>
         <Text>Requesting camera permission…</Text>
       </View>
     );
   }
-  if (hasPermission === false) {
+
+  if (!permission.granted) {
     return (
       <View style={styles.center}>
-        <Text style={{ textAlign: 'center', marginBottom: 20 }}>No access to camera. Please enable camera permissions in your device settings.</Text>
+        <Text style={{ textAlign: 'center', marginBottom: 20 }}>
+          No access to camera. Please enable camera permissions in your device settings.
+        </Text>
         <Button 
-          title="Try Again" 
-          onPress={async () => {
-            const { status } = await Camera.requestCameraPermissionsAsync();
-            setHasPermission(status === "granted");
-          }} 
+          title="Grant Permission" 
+          onPress={requestPermission}
         />
       </View>
     );
   }
 
+  const handleImagePicked = async (result: { canceled?: boolean; assets: Array<{ uri: string }> | null } | null) => {
+    if (!result || result.canceled || !result.assets || result.assets.length === 0) return;
+    const firstAsset = result.assets[0];
+    if (firstAsset?.uri) {
+      try {
+        const scannedResults = await Camera.scanFromURLAsync(
+          result.assets[0].uri,
+        );
+        const { data } = scannedResults[0];
+        await handleQRCodeData(data);
+      } catch (error) {
+        alert('No QR-CODE Found');
+      }
+    }
+  };
+
+  const pickImage = async () => {
+    // No permissions request is necessary for launching the image library
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 1,
+      });
+      await handleImagePicked(result);
+    } catch (error) {
+      // Handle errors from ImagePicker
+      alert('Error picking image.');
+    }
+  };
+
+
   return (
     <View style={styles.container}>
-      <CameraView
-        onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
-        barcodeScannerSettings={{
-          barcodeTypes: ["qr"],
-        }}
-        style={[StyleSheet.absoluteFill, styles.camera]}
-      >
-        {/* Overlay */}
-        <View style={styles.overlay}>
-          <Svg height="100%" width="100%">
-            <Defs>
-              <Mask id="mask" x="0" y="0" height="100%" width="100%">
-                <Rect height="100%" width="100%" fill="#fff" />
-                <Rect
-                  x={Dimensions.get("window").width * 0.1}
-                  y={Dimensions.get("window").height * 0.3}
-                  width={Dimensions.get("window").width * 0.8}
-                  height={Dimensions.get("window").width * 0.8}
-                  fill="black"
-                  rx={10}
-                  ry={10}
-                />
-              </Mask>
-            </Defs>
-            <Rect height="100%" width="100%" fill="rgba(0,0,0,0.5)" mask="url(#mask)" />
-          </Svg>
-        </View>
-
-        <Text style={styles.scanText}>Scan your QR Code</Text>
-
-        {scanned && (
-          <View style={styles.scanAgainContainer}>
-            <Button title="Tap to Scan Again" onPress={() => setScanned(false)} />
+      <View style={{ flex: 1 }}>
+        <CameraView
+          onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
+          barcodeScannerSettings={{
+            barcodeTypes: ["qr"],
+          }}
+          style={[StyleSheet.absoluteFill, styles.camera]}
+        >
+          {/* Overlay */}
+          <View style={styles.overlay}>
+            <Svg height="100%" width="100%">
+              <Defs>
+                <Mask id="mask" x="0" y="0" height="100%" width="100%">
+                  <Rect height="100%" width="100%" fill="#fff" />
+                  <Rect
+                    x={Dimensions.get("window").width * 0.1}
+                    y={Dimensions.get("window").height * 0.2}
+                    width={Dimensions.get("window").width * 0.8}
+                    height={Dimensions.get("window").width * 0.8}
+                    fill="black"
+                    rx={10}
+                    ry={10}
+                  />
+                </Mask>
+              </Defs>
+              <Rect height="100%" width="100%" fill="rgba(0,0,0,0.5)" mask="url(#mask)" />
+            </Svg>
           </View>
-        )}
-      </CameraView>
+
+          <Text style={styles.scanText}>Scan your QR Code</Text>
+
+          {scanned && (
+            <View style={styles.scanAgainContainer}>
+              <Button title="Tap to Scan Again" onPress={() => setScanned(false)} />
+            </View>
+          )}
+        </CameraView>
+        
+        <View style={styles.bottomButtonContainer}>
+          <TouchableOpacity
+            style={styles.pickImageButton}
+            onPress={pickImage}
+          >
+            <Text style={styles.pickImageButtonText}>
+              SELECT FROM PHOTOS
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+      
     </View>
   );
 }
@@ -183,6 +229,26 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "black",
+  },
+  bottomButtonContainer: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+  },
+  pickImageButton: {
+    backgroundColor: '#0a7ea4',
+    width: '100%',
+    height: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 12,
+  },
+  pickImageButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   camera: {
     flex: 1,
