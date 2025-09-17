@@ -1,6 +1,6 @@
 import { createStockEntry, getItemByBarcode, ItemDetail } from '@/lib/api/items';
 import { useWarehouse } from '@/lib/state/warehouse';
-import { selectName } from '@/redux/Slices/UserSlice';
+import { selectEmployeeCode, selectName } from '@/redux/Slices/UserSlice';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, Button, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -15,7 +15,8 @@ export default function ItemDetails() {
   const [qty, setQty] = useState<string>('');
   const [showSuccess, setShowSuccess] = useState(false);
   const router = useRouter();
-  const fullName = useSelector(selectName);
+  const employeeCode = useSelector(selectEmployeeCode);
+
 
 
   useEffect(() => {
@@ -122,7 +123,7 @@ export default function ItemDetails() {
         barcode: b,
         shelf: sh,
         date_time: formatDateTime(new Date()),
-        employee: fullName || '',
+        employee: employeeCode || '',
       };
       
       setLoading(true);
