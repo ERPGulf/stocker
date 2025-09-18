@@ -18,8 +18,10 @@ const LIST_BASE_PATH = '/api/method/stocker.stocker.api.list_items';
 const DETAIL_BASE_PATH = '/api/method/stocker.stocker.api.get_items';
 const STOCK_ENTRIES_PATH = '/api/method/stocker.stocker.api.list_stock_entries';
 const DELETE_ENTRY_PATH = '/api/method/stocker.stocker.api.delete_stock_entry';
+const ITEM_UOM_PATH = '/api/method/stocker.stocker.api.get_item_uom';
 const CREATE_ENTRY_PATH = '/api/method/stocker.stocker.api.create_stock_entry';
 const UPDATE_ENTRY_PATH = '/api/method/stocker.stocker.api.update_stock_entry';
+const SEARCH_ITEMS_PATH = '/api/method/stocker.stocker.api.list_items_new';
 
 // LIST: Get all items, optionally filtered by warehouse
 export async function listItems(warehouse_id?: string): Promise<GetItemsResponse> {
@@ -28,6 +30,24 @@ export async function listItems(warehouse_id?: string): Promise<GetItemsResponse
     params.warehouse = warehouse_id.trim();
   }
   const res = await API.get(LIST_BASE_PATH, { params });
+  return res.data as GetItemsResponse;
+}
+
+// SEARCH: Search items by item code with limit
+export async function searchItems(itemCode: string, limit: number): Promise<GetItemsResponse> {
+  const params: Record<string, string> = {
+    item_code: itemCode,
+    limit: limit.toString()
+  };
+  
+  const res = await API.get(SEARCH_ITEMS_PATH, { 
+    params,
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Cookie': 'full_name=Guest; sid=Guest; system_user=no; user_id=Guest; user_image='
+    }
+  });
+  
   return res.data as GetItemsResponse;
 }
 
@@ -183,6 +203,23 @@ export async function deleteStockEntry(entry_id: string): Promise<{ status?: str
   }
 }
 
+// Get UOMs for an item
+export const getItemUOMs = async (itemCode: string): Promise<string[]> => {
+  try {
+    const response = await API.post(ITEM_UOM_PATH, {
+      item_code: itemCode
+    });
+    
+    if (response.data && Array.isArray(response.data.data)) {
+      return response.data.data;
+    }
+    return [];
+  } catch (error) {
+    console.error('Error fetching item UOMs:', error);
+    return [];
+  }
+};
+
 // DETAIL: single item by barcode and warehouse
 export type ItemDetail = {
   item_id?: string;
@@ -207,6 +244,34 @@ export async function getItemByBarcode(barcode: string, warehouse_id: string): P
     total_qty: d.total_qty,
     shelf_qty: d.shelf_qty,
   } as ItemDetail;
+}
+export async function getItemByUom(item_code: string, uom: string, warehouse: string): Promise<ItemDetail | null> {
+  const params: Record<string, string> = {
+    item_code: item_code,
+    uom: uom,
+    warehouse: warehouse
+  };
+  
+  try {
+    const res = await API.get(DETAIL_BASE_PATH, { params });
+    const d = res.data?.data;
+    
+    if (!d) {
+      console.error('No data returned from API');
+      return null;
+    }
+    
+    return {
+      item_id: d.item_id,
+      item_name: d.item_name || item_code, // Fallback to item_code if name is not available
+      uom: d.uom || uom, // Fallback to the provided UOM if not in response
+      total_qty: d.total_qty || 0,
+      shelf_qty: d.shelf_qty || 0,
+    } as ItemDetail;
+  } catch (error) {
+    console.error('Error fetching item by UOM:', error);
+    return null;
+  }
 }
 
 type BarcodeEntry = { id?: string; barcode?: string; uom?: string };

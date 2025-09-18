@@ -54,21 +54,21 @@ export default function LoginScreen() {
   const handleQRCodeData = async (data: string) => {
     try {
       const value = decodeBase64Utf8(data);
+      console.log("value",value)
       const companyMatch = value.match(/Company: (\w+)/);
       const employeeCodeMatch = value.match(/Employee_Code: ([\w-]+)/);
       const userIdMatch = value.match(/User_id: ([\w@.-]+)/);
       const fullNameMatch = value.match(/Full_Name: (.+)/);
-      const apiMatch = value.match(/API: (https:\/\/.+)$/);
-
+      const apiMatch = value.match(/API:\s*(https:\/\/[^\s\u0001\u001e]+)/);
+      const branchMatch = value.match(/Payroll_Cost_Center: (.+)/);
+      const branch = branchMatch ? branchMatch[1] : ''; // Provide a default branch if not present
 
       if (companyMatch && employeeCodeMatch && userIdMatch && fullNameMatch && apiMatch) {
         const company = companyMatch[1];
         const employeeCode = employeeCodeMatch[1];
         const userId = userIdMatch[1];
         const fullName = fullNameMatch[1].trim();
-
-        const api = apiMatch[1];
-        console.log("apiUrl",api)
+        const api = apiMatch[1].trim();
       
         
         // Store all login data with both full API URL and base URL
@@ -78,7 +78,8 @@ export default function LoginScreen() {
           fullName,
           userId,
           api, // Store only the base URL
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          branch
         };
         
         await AsyncStorage.multiSet([

@@ -11,6 +11,7 @@ const Settings = () => {
   const dispatch = useDispatch();
   const username = useSelector(selectName);
   const userDetails = useSelector(selectUserDetails);
+  console.log("userDetails",userDetails)
 
   const { setSelectedWarehouse, setShelf } = useWarehouse();
 
@@ -78,6 +79,12 @@ const Settings = () => {
               <View style={styles.infoRow}>
                 <Text style={styles.label}>Company:</Text>
                 <Text style={styles.value}>{userDetails.company}</Text>
+              </View>
+            )}
+            {userDetails?.company && (
+              <View style={styles.infoRow}>
+                <Text style={styles.label}>branch:</Text>
+                <Text style={styles.value}>{userDetails.branch}</Text>
               </View>
             )}
             

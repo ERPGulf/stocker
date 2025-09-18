@@ -1,13 +1,18 @@
-import { createStockEntry, getItemByBarcode, ItemDetail } from '@/lib/api/items';
+import { createStockEntry, getItemByBarcode, getItemByUom, ItemDetail } from '@/lib/api/items';
 import { useWarehouse } from '@/lib/state/warehouse';
-import { selectEmployeeCode, selectName } from '@/redux/Slices/UserSlice';
+import { selectEmployeeCode, selectName, selectUserDetails } from '@/redux/Slices/UserSlice';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, Button, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSelector } from 'react-redux';
 
 export default function ItemDetails() {
-  const { barcode } = useLocalSearchParams<{ barcode?: string }>();
+  const { barcode, itemId, uom, warehouse } = useLocalSearchParams<{ 
+    barcode?: string; 
+    itemId?: string;
+    uom?: string;
+    warehouse?: string;
+  }>();
   const { selectedWarehouse, shelf, token, authLoading, refreshToken } = useWarehouse();
   const [item, setItem] = useState<ItemDetail | null>(null);
   const [loading, setLoading] = useState(false);
@@ -15,7 +20,8 @@ export default function ItemDetails() {
   const [qty, setQty] = useState<string>('');
   const [showSuccess, setShowSuccess] = useState(false);
   const router = useRouter();
-  const employeeCode = useSelector(selectEmployeeCode);
+  const employeeCode = useSelector(selectUserDetails);
+ 
 
 
 
@@ -48,23 +54,52 @@ export default function ItemDetails() {
       try {
         setLoading(true);
         setError(null);
-        const b = typeof barcode === 'string' ? barcode : '';
-        const warehouseId = selectedWarehouse?.warehouse_id ?? '';
-        if (!b || !warehouseId) {
+        
+        const warehouseId = warehouse || selectedWarehouse?.warehouse_id || '';
+        
+        if (!warehouseId) {
           setItem(null);
-          setError(!warehouseId ? 'Please select a warehouse first' : 'No barcode provided');
+          setError('Please select a warehouse first');
           return;
         }
-        const detail = await getItemByBarcode(b, warehouseId);
+
+        let detail: ItemDetail | null = null;
+        
+        if (barcode) {
+          // Handle barcode scan flow
+          const b = typeof barcode === 'string' ? barcode : '';
+          if (!b) {
+            setError('No barcode provided');
+            return;
+          }
+          detail = await getItemByBarcode(b, warehouseId);
+        } else if (itemId && uom) {
+          // Handle UOM selection flow
+          const itemCode = typeof itemId === 'string' ? itemId : '';
+          const itemUom = typeof uom === 'string' ? uom : '';
+          if (!itemCode || !itemUom) {
+            setError('Missing item code or UOM');
+            return;
+          }
+          detail = await getItemByUom(itemCode, itemUom, warehouseId);
+        } else {
+          setError('No item identifier provided');
+          return;
+        }
+        
         setItem(detail);
       } catch (e: any) {
-        setError(e?.message ?? 'Failed to load ');
+        const errorMessage = e?.message ?? 'Failed to load item details';
+        console.error('Error loading item:', e);
+        setError(errorMessage);
+        Alert.alert('Error', errorMessage);
       } finally {
         setLoading(false);
       }
     };
+    
     load();
-  }, [barcode, selectedWarehouse?.warehouse_id]);
+  }, [barcode, itemId, uom, warehouse, selectedWarehouse?.warehouse_id]);
 
   const formatDateTime = (d: Date) => {
     const pad = (n: number) => n.toString().padStart(2, '0');
@@ -107,24 +142,29 @@ export default function ItemDetails() {
         return;
       }
       
-      // Validate barcode
+      // Only require barcode for barcode flow
       const b = typeof barcode === 'string' ? barcode : '';
-      if (!b) {
+      if (barcode && !b) {
         Alert.alert('Missing barcode', 'No barcode provided.');
         return;
       }
       
       // Prepare payload
-      const payload = {
+      const payload: any = {
         item_id: String(item.item_id ?? ''),
         uom: String(item.uom ?? ''),
         qty: q,
-        warehouse: selectedWarehouse?.warehouse_id ?? '',
-        barcode: b,
+        warehouse: warehouse || selectedWarehouse?.warehouse_id || '',
         shelf: sh,
         date_time: formatDateTime(new Date()),
-        employee: employeeCode || '',
+        employee: employeeCode?.employeeCode || '',
+        branch : employeeCode?.branch || '',
       };
+      
+      // Only include barcode if it exists (for barcode flow)
+      if (b) {
+        payload.barcode = b;
+      }
       
       setLoading(true);
       setError(null);
@@ -145,7 +185,12 @@ export default function ItemDetails() {
               text: 'OK',
               onPress: () => {
                 setQty('');
-                router.replace('/(tabs)/scanning');
+                // Navigate back to the appropriate screen based on the flow
+                if (barcode) {
+                  router.replace('/(tabs)/scanning');
+                } else {
+                  router.replace('/(tabs)/items');
+                }
               },
             },
           ],
@@ -155,7 +200,16 @@ export default function ItemDetails() {
         throw new Error(response?.message || 'Failed to create stock entry');
       }
     } catch (e: any) {
-      setError(e?.message ?? 'Failed to create entry');
+      let errorMessage = 'Failed to create entry';
+      
+      if (e?.response?.status === 409) {
+        errorMessage = 'This item has already been entered. Please edit the existing entry from the items list.';
+      } else {
+        errorMessage = e?.message ?? errorMessage;
+      }
+      
+      setError(errorMessage);
+      Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -165,7 +219,7 @@ export default function ItemDetails() {
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Item Details</Text>
       {(loading || authLoading) && <Text style={styles.muted}>{authLoading ? 'Authenticating…' : 'Loading…'}</Text>}
-      {error && <Text style={[styles.muted, { color: 'red' }]}>{error}</Text>}
+      
 
       {item ? (
         <View style={styles.card}>

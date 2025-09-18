@@ -1,7 +1,8 @@
-import { Camera, CameraView, useCameraPermissions } from "expo-camera";
+import ItemCodeButton from "@/components/ItemCodeButton";
+import { CameraView, useCameraPermissions } from "expo-camera";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
-import { Button, Dimensions, StyleSheet, Text, View, TextInput, KeyboardAvoidingView, Platform } from "react-native";
+import { Button, Dimensions, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from "react-native";
 import Svg, { Defs, Mask, Rect } from "react-native-svg";
 
 export default function Scanning() {
@@ -126,12 +127,22 @@ export default function Scanning() {
                 )}
               </CameraView>
             )}
-            <View style={styles.manualButtonContainer}>
-              <Button 
-                title="Enter Barcode Manually" 
-                onPress={() => setShowManualInput(true)} 
-                color="#007AFF"
-              />
+            <View style={styles.buttonsContainer}>
+              <View style={[styles.buttonWrapper, styles.button]}>
+                <Button 
+                  title="Enter Barcode Manually" 
+                  onPress={() => setShowManualInput(true)} 
+                  color="#007AFF"
+                />
+              </View>
+              <View style={styles.buttonWrapper}>
+                <ItemCodeButton
+                  onSelectItem={(code) => {
+                    console.log("Selected code:", code);
+                    // save to state or API call here
+                  }}
+                />
+              </View>
             </View>
           </>
         ) : (
@@ -175,13 +186,33 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: 'black' },
   camera: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: 'black' },
+  buttonsContainer: {
+    position: 'absolute',
+    bottom: 120,
+    left: 20,
+    right: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 0,
+    
+  },
+  buttonWrapper: {
+    flex: 1,
+    marginHorizontal: 5,
+    
+  },
+  button: {
+    justifyContent: 'center',
+    height: 48,
+    paddingHorizontal: 16,
+    backgroundColor: '#007AFF',
+    borderRadius: 12
+  },
   overlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center' },
   scanText: { position: 'absolute', top: Dimensions.get('window').height * 0.25, width: '100%', textAlign: 'center', color: 'white', fontSize: 18, fontWeight: '600' },
   scanAgainContainer: { position: 'absolute', bottom: 100, width: '100%', alignItems: 'center' },
-  manualButtonContainer: { position: 'absolute', bottom: 40, left: 20, right: 20 },
   manualInputContainer: { flex: 1, backgroundColor: '#fff', padding: 20, justifyContent: 'center' },
   manualTitle: { fontSize: 20, fontWeight: '600', marginBottom: 20, textAlign: 'center', color: '#000' },
   input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 15, fontSize: 16, marginBottom: 20, backgroundColor: '#fff' },
   buttonRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
-  buttonWrapper: { flex: 1, marginHorizontal: 5 },
 });

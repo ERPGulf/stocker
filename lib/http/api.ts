@@ -46,8 +46,6 @@ API.interceptors.request.use((config) => {
 API.interceptors.response.use(
   (res) => res,
   (error) => {
-    // Log error if needed
-    console.error('API Error:', error);
     return Promise.reject(error);
   }
 );
