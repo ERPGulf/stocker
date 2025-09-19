@@ -63,6 +63,54 @@ export default function Items() {
   };
   const hideAlert = () => setCustomAlert(prev => ({...prev, visible: false}));
 
+  // Show confirmation before deleting
+  const confirmAndDelete = (entry_id?: string) => {
+    console.log('confirmAndDelete called with ID:', entry_id);
+    
+    if (!entry_id) {
+      console.error('confirmAndDelete called with no entry_id');
+      showAlert('Error', 'No entry ID provided for deletion');
+      return;
+    }
+    
+    const deleteAfterConfirm = async () => {
+      try {
+        console.log('User confirmed delete for ID:', entry_id);
+        const result = await deleteStockEntry(entry_id);
+        console.log('Delete result:', result);
+        
+        if (result?.status === 'success') {
+          // Refresh the list after successful deletion
+          load();
+          showAlert('Success', 'Entry deleted successfully');
+        } else {
+          showAlert('Error', result?.message || 'Failed to delete entry');
+        }
+      } catch (error) {
+        console.error('Error in deleteAfterConfirm:', error);
+        showAlert('Error', 'Failed to delete entry. Please try again.');
+      }
+    };
+    
+    // Show custom confirmation dialog
+    showAlert(
+      'Delete Entry',
+      'Are you sure you want to delete this entry?',
+      [
+        {
+          text: 'Cancel',
+          onPress: () => console.log('Delete cancelled'),
+          style: 'cancel'
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: deleteAfterConfirm
+        }
+      ]
+    );
+  };
+
   // Handle editing
   const handleEdit = (item: StockEntry) => (e: any) => {
     e?.stopPropagation?.();
@@ -276,8 +324,32 @@ export default function Items() {
                 <Image source={require('@/assets/images/edit-icon.png')} style={styles.icon} />
               </TouchableOpacity>
               <View style={{width: 12}} />
-              <TouchableOpacity style={styles.deleteButton} activeOpacity={0.7} onPress={() => console.log('Delete pressed for', item.entry_id)}>
-                <Image source={require('@/assets/images/delete-icon.png')} style={styles.icon} />
+              <View style={{ width: 12 }} />
+              <TouchableOpacity
+                style={styles.deleteButton}
+                activeOpacity={0.7}
+                onPress={(e) => {
+                  e.stopPropagation(); // Prevent any parent press events
+                  console.log('Trash icon clicked. Item data:', JSON.stringify(item, null, 2));
+                  const eid = item.entry_id || (item as any)?.id;
+                  console.log('Extracted entry ID:', eid);
+                  if (!eid) {
+                    const errorMsg = `Missing entry ID in item: ${JSON.stringify(item)}`;
+                    console.error(errorMsg);
+                    Alert.alert('Missing entry ID', 'Cannot delete because the entry has no ID.');
+                    return;
+                  }
+                  console.log('Calling confirmAndDelete with ID:', eid);
+                  confirmAndDelete(String(eid));
+                }}
+                onLongPress={() => {
+                  console.log('Long press on delete');
+                }}
+              >
+                <Image 
+                  source={require('@/assets/images/delete-icon.png')} 
+                  style={styles.icon}
+                />
               </TouchableOpacity>
             </View>
           </View>
