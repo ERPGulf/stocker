@@ -177,6 +177,11 @@ export default function ItemDetails() {
         console.log("API call successful, showing alert...");
         
         // Use React Native's Alert component
+        // Clear all form state
+        setQty('');
+        setItem(null);
+        setError('');
+        
         Alert.alert(
           'Success',
           'Stock entry created successfully!',
@@ -184,7 +189,6 @@ export default function ItemDetails() {
             {
               text: 'OK',
               onPress: () => {
-                setQty('');
                 // Navigate back to the appropriate screen based on the flow
                 if (barcode) {
                   router.replace('/(tabs)/scanning');

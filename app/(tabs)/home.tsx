@@ -1,6 +1,6 @@
 import { getWarehouses, Warehouse } from '@/lib/api/warehouses';
 import { useWarehouse } from '@/lib/state/warehouse';
-import { selectName} from '@/redux/Slices/UserSlice';
+import { selectName, selectUserDetails} from '@/redux/Slices/UserSlice';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Modal, Platform, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -20,6 +20,8 @@ export default function WarehouseScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fullName = useSelector(selectName);
+  const employeeCode = useSelector(selectUserDetails);
+  console.log("employeeCode",employeeCode)
 
   const [showWarehousePicker, setShowWarehousePicker] = useState(false);
 
@@ -37,7 +39,7 @@ export default function WarehouseScreen() {
       try {
         setLoading(true);
         setError(null);
-        const list = await getWarehouses();
+        const list = await getWarehouses(employeeCode.employeeCode);
         setWarehouses(list);
       } catch (e: any) {
         setError(e?.message ?? 'Failed to load warehouses');
@@ -67,7 +69,7 @@ export default function WarehouseScreen() {
           style={styles.select}
         >
           <Text style={styles.selectText}>
-            {selectedWarehouse?.warehouse_id ?? 'Select warehouse'}
+            {selectedWarehouse?.warehouse_id ?? 'Select Warehouse'}
           </Text>
           <Text style={styles.chevron}>▾</Text>
         </TouchableOpacity>
@@ -81,7 +83,7 @@ export default function WarehouseScreen() {
         >
           <Pressable style={styles.modalBackdrop} onPress={() => setShowWarehousePicker(false)}>
             <Pressable style={styles.modalCard}>
-              <Text style={styles.modalTitle}>Select warehouse</Text>
+              <Text style={styles.modalTitle}>Select Warehouse</Text>
               <FlatList
                 data={warehouses}
                 keyExtractor={(w) => w.warehouse_id}
@@ -101,7 +103,7 @@ export default function WarehouseScreen() {
                   );
                 }}
                 ListEmptyComponent={!loading ? (
-                  <Text style={{ color: '#6b7280' }}>No warehouses.</Text>
+                  <Text style={{ color: '#6b7280' }}>No Warehouses.</Text>
                 ) : null}
               />
             </Pressable>
@@ -119,7 +121,7 @@ export default function WarehouseScreen() {
           }}
           style={styles.select}
         >
-          <Text style={styles.selectText}>{shelf ?? 'Select shelf'}</Text>
+          <Text style={styles.selectText}>{shelf ?? 'Select Shelf'}</Text>
           <Text style={styles.chevron}>▾</Text>
         </TouchableOpacity>
 
@@ -133,7 +135,7 @@ export default function WarehouseScreen() {
             router.push('/(tabs)/items');
           }}
         >
-          <Text style={styles.buttonText}>List today's entry</Text>
+          <Text style={styles.buttonText}>List Today's Entry</Text>
         </TouchableOpacity>
         {/* Scan Barcode Button */}
         <TouchableOpacity 

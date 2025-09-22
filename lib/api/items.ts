@@ -21,7 +21,7 @@ const DELETE_ENTRY_PATH = '/api/method/stocker.stocker.api.delete_stock_entry';
 const ITEM_UOM_PATH = '/api/method/stocker.stocker.api.get_item_uom';
 const CREATE_ENTRY_PATH = '/api/method/stocker.stocker.api.create_stock_entry';
 const UPDATE_ENTRY_PATH = '/api/method/stocker.stocker.api.update_stock_entry';
-const SEARCH_ITEMS_PATH = '/api/method/stocker.stocker.api.list_items_new';
+const SEARCH_ITEMS_PATH = '/api/method/stocker.stocker.api.list_items_search';
 
 // LIST: Get all items, optionally filtered by warehouse
 export async function listItems(warehouse_id?: string): Promise<GetItemsResponse> {
@@ -34,10 +34,11 @@ export async function listItems(warehouse_id?: string): Promise<GetItemsResponse
 }
 
 // SEARCH: Search items by item code with limit
-export async function searchItems(itemCode: string, limit: number): Promise<GetItemsResponse> {
+export async function searchItems(itemCode: string, limit: number, offset: number): Promise<GetItemsResponse> {
   const params: Record<string, string> = {
-    item_code: itemCode,
-    limit: limit.toString()
+    item: itemCode,
+    limit: limit.toString(),
+    offset: offset.toString()
   };
   
   const res = await API.get(SEARCH_ITEMS_PATH, { 

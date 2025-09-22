@@ -83,7 +83,7 @@ const Settings = () => {
             )}
             {userDetails?.company && (
               <View style={styles.infoRow}>
-                <Text style={styles.label}>branch:</Text>
+                <Text style={styles.label}>Branch:</Text>
                 <Text style={styles.value}>{userDetails.branch}</Text>
               </View>
             )}

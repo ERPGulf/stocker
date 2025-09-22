@@ -1,9 +1,10 @@
 import { searchItems, getItemUOMs, getItemByUom } from "@/lib/api/items";
 import debounce from "lodash.debounce";
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { useRouter } from "expo-router";
 import {
     Button,
+    FlatList,
     Modal,
     StyleSheet,
     Text,
@@ -13,8 +14,10 @@ import {
     ActivityIndicator
 } from "react-native";
 
-type Item = {
-  name?: string;
+interface Item {
+  item_code?: string;
+  item_name?: string;
+
 };
 
 interface ItemCodeButtonProps {
@@ -29,36 +32,95 @@ const ItemCodeButton = ({ onSelectItem, warehouse = '', navigateOnSelect = true 
   const [searchTerm, setSearchTerm] = useState("");
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const [uoms, setUoms] = useState<string[]>([]);
   const [selectedUom, setSelectedUom] = useState<string>('');
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [loadingUoms, setLoadingUoms] = useState(false);
+  const [currentSearchTerm, setCurrentSearchTerm] = useState('');
 
-  const fetchItems = debounce(async (text: string) => {
+  const fetchItems = useCallback(debounce(async (text: string, pageNum: number = 1) => {
     if (!text) {
       setItems([]);
+      setHasMore(true);
+      setPage(1);
       return;
     }
-    setLoading(true);
-    try {
-      const { data, error } = await searchItems(text, 5);
-      if (!error) {
-        setItems(data || []);
-      } else {
-        setItems([]);
-      }
-    } catch {
+
+    const isNewSearch = currentSearchTerm !== text || pageNum === 1;
+    const offset = (pageNum - 1) * 3; // Calculate offset based on page number
+    
+    if (isNewSearch) {
       setItems([]);
-    } finally {
-      setLoading(false);
+      setPage(1);
+      setCurrentSearchTerm(text);
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
     }
-  }, 250);
+
+    try {
+      const { data, error } = await searchItems(text, 3, offset);
+      if (!error && data) {
+        setItems(prevItems => isNewSearch ? data : [...prevItems, ...data]);
+        // If we got 3 items, there might be more, otherwise we've reached the end
+        setHasMore(data.length === 3);
+      } else {
+        if (isNewSearch) setItems([]);
+        setHasMore(false);
+      }
+    } catch (error) {
+      console.error('Error fetching items:', error);
+      if (isNewSearch) setItems([]);
+      setHasMore(false);
+    } finally {
+      if (isNewSearch) {
+        setLoading(false);
+      } else {
+        setLoadingMore(false);
+      }
+    }
+  }, 250), [currentSearchTerm]);
+
+  const loadMoreItems = useCallback(() => {
+    if (!loading && !loadingMore && hasMore && currentSearchTerm) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchItems(currentSearchTerm, nextPage);
+    }
+  }, [page, loading, loadingMore, hasMore, currentSearchTerm, fetchItems]);
+
+  const renderFooter = () => {
+    if (!loadingMore) return null;
+    return (
+      <View style={styles.loadingMore}>
+        <ActivityIndicator size="small" color="#0000ff" />
+      </View>
+    );
+  };
+
+  const renderItem = useCallback(({ item }: { item: Item }) => (
+    <TouchableOpacity
+      key={item.item_code}
+      style={styles.suggestionItem}
+      onPress={() => handleItemSelect(item)}
+    >
+      <Text style={styles.itemText}>
+        {item.item_code} 
+      </Text>
+      <Text style={styles.itemText2}>
+        {item.item_name}
+      </Text>
+    </TouchableOpacity>
+  ), []);
 
   const handleItemSelect = async (item: Item) => {
     setSelectedItem(item);
     setLoadingUoms(true);
     try {
-      const uoms = await getItemUOMs(item.name || '');
+      const uoms = await getItemUOMs(item.item_code|| '');
       setUoms(uoms);
       if (uoms.length > 0) {
         setSelectedUom(uoms[0]);
@@ -71,14 +133,16 @@ const ItemCodeButton = ({ onSelectItem, warehouse = '', navigateOnSelect = true 
     }
   };
 
-  const handleUomSelect = async (uom: string) => {
-    if (!selectedItem) return;
-    
+  const handleUomSelect = (uom: string) => {
     setSelectedUom(uom);
+  };
+
+  const handleSelectUom = async () => {
+    if (!selectedItem || !selectedUom) return;
     
     try {
       // Get the full item details with the selected UOM
-      const itemDetails = await getItemByUom(selectedItem.name || '', uom, warehouse);
+      const itemDetails = await getItemByUom(selectedItem.item_code || '', selectedUom, warehouse);
       
       if (!itemDetails) {
         console.error('Could not fetch item details');
@@ -87,10 +151,7 @@ const ItemCodeButton = ({ onSelectItem, warehouse = '', navigateOnSelect = true 
       
       // Call the onSelectItem callback if provided
       if (onSelectItem) {
-        onSelectItem({
-          item: selectedItem,
-          uom: uom
-        });
+        onSelectItem({ item: itemDetails, uom: selectedUom });
       }
       
       // Navigate to item details if enabled
@@ -99,7 +160,7 @@ const ItemCodeButton = ({ onSelectItem, warehouse = '', navigateOnSelect = true 
           pathname: '/(tabs)/itemDetails',
           params: {
             itemId: itemDetails.item_id,
-            uom: uom,
+            uom: selectedUom,
             warehouse: warehouse
           }
         });
@@ -146,53 +207,62 @@ const ItemCodeButton = ({ onSelectItem, warehouse = '', navigateOnSelect = true 
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              {selectedItem ? 'Select UOM' : 'Search Item Code'}
-            </Text>
-
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {selectedItem ? 'Select UOM' : 'Search Items'}
+              </Text>
+              <TouchableOpacity 
+                onPress={() => setModalVisible(false)}
+                style={styles.closeButton}
+              >
+                <Text style={styles.closeButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
             {!selectedItem ? (
               <>
                 <View style={styles.inputContainer}>
                   <TextInput
                     value={searchTerm}
-                    onChangeText={(text) => {
-                      setSearchTerm(text);
-                      fetchItems(text);
-                    }}
+                    onChangeText={setSearchTerm}
                     placeholder="Type item code..."
                     autoFocus
-                    style={styles.input}
+                    style={[styles.input, { flex: 1 }]}
                     placeholderTextColor="#999"
                     underlineColorAndroid="transparent"
                     selectionColor="#007AFF"
                     className="text-lg"
+                    onSubmitEditing={() => searchTerm && fetchItems(searchTerm, 1)}
+                    returnKeyType="search"
                   />
+                  <TouchableOpacity 
+                    style={styles.search}
+                    onPress={() => searchTerm && fetchItems(searchTerm, 1)}
+                    disabled={!searchTerm}
+                  >
+                    <Text style={styles.searchButtonText}>Search</Text>
+                  </TouchableOpacity>
                 </View>
 
                 <View style={styles.suggestionsContainer}>
-                  {loading ? (
+                  {loading && items.length === 0 ? (
                     <Text style={styles.searchingText}>Searching...</Text>
-                  ) : items.length > 0 ? (
-                    items.map((item) => (
-                      <TouchableOpacity
-                        key={item.name}
-                        style={styles.suggestionItem}
-                        onPress={() => handleItemSelect(item)}
-                      >
-                        <Text style={styles.itemText}>
-                          {item.name} 
-                        </Text>
-                      </TouchableOpacity>
-                    ))
-                  ) : searchTerm ? (
-                    <Text style={styles.searchingText}>No items found</Text>
-                  ) : null}
+                  ) : (
+                    <FlatList
+                      data={items}
+                      renderItem={renderItem}
+                      keyExtractor={(item) => item.item_code || ''}
+                      onEndReached={loadMoreItems}
+                      onEndReachedThreshold={0.1}
+                      ListFooterComponent={renderFooter}
+                      
+                    />
+                  )}
                 </View>
               </>
             ) : (
               <View style={styles.uomContainer}>
                 <Text style={styles.selectedItem}>
-                  {selectedItem.name} ({selectedItem.name})
+                  {selectedItem.item_code} ({selectedItem.item_name})
                 </Text>
                 
                 {loadingUoms ? (
@@ -231,7 +301,7 @@ const ItemCodeButton = ({ onSelectItem, warehouse = '', navigateOnSelect = true 
                   {uoms.length > 0 && (
                     <Button
                       title="Select"
-                      onPress={() => handleUomSelect(selectedUom)}
+                      onPress={handleSelectUom}
                       color="#007AFF"
                     />
                   )}
@@ -250,11 +320,25 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   input: {
-    flex: 1,
-    padding: 0,
-    margin: 0,
-    borderWidth: 0,
-    outlineWidth: 0,
+    padding: 12,
+    borderWidth: 1,
+    borderRadius: 6,
+    borderColor: '#ddd',
+    backgroundColor: '#fff',
+    fontSize: 16,
+  },
+  searchButton: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  searchButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
   uomContainer: {
     padding: 16,
@@ -316,7 +400,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f3f4f6',
     borderRadius: 8
   },
-  searchButton: {
+  search: {
     backgroundColor: '#007AFF',
     paddingVertical: 8,
     paddingHorizontal: 20,
@@ -342,14 +426,10 @@ const styles = StyleSheet.create({
     padding: 16
   },
   inputContainer: {
-    backgroundColor: '#f3f4f6',
-    height: 48,
-    paddingHorizontal: 12,
-    borderRadius: 12,
     flexDirection: 'row',
+    marginBottom: 16,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#d1d5db'
+    gap: 8,
   },
   suggestionsContainer: {
     marginTop: 12,
@@ -373,8 +453,34 @@ const styles = StyleSheet.create({
   },
   itemText: {
     fontSize: 16,
+    color: '#1f2937',
+    fontWeight: '600'
+  },
+  itemText2: {
+    fontSize: 12,
+    fontWeight: '400',
     color: '#1f2937'
-  }
+  },
+  loadingMore: {
+    padding: 10,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  closeButton: {
+    padding: 8,
+    marginRight: -8,
+  },
+  closeButtonText: {
+    fontSize: 20,
+    color: '#666',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+  
+  },
 });
 
 export default ItemCodeButton;

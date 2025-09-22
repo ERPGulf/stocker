@@ -7,8 +7,16 @@ export type Warehouse = {
 
 const BASE_PATH = '/api/method/stocker.stocker.api.warehouse_list';
 
-export async function getWarehouses(): Promise<Warehouse[]> {
-  const res = await API.get(BASE_PATH);
+export async function getWarehouses(employeeCode: string): Promise<Warehouse[]> {
+  const body = new URLSearchParams();
+  body.append('employee_code', employeeCode);
+
+  const res = await API.post(BASE_PATH, body.toString(), {
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+  });
+  
   const json = res.data;
   const list = (json?.data ?? json?.message ?? []) as any[];
   return Array.isArray(list)

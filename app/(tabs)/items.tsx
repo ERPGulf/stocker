@@ -1,9 +1,9 @@
 import { deleteStockEntry, listStockEntries, StockEntry, updateStockEntry } from '@/lib/api/items';
 import { useWarehouse } from '@/lib/state/warehouse';
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Image, Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, Image, Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function Items() {
   const router = useRouter();
@@ -44,9 +44,11 @@ export default function Items() {
     }
   };
 
-  useEffect(() => {
-    load();
-  }, [selectedWarehouse?.warehouse_id, showTodayOnly]);
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [showTodayOnly])
+  );
 
   // Alert helpers
   type AlertButton = {
