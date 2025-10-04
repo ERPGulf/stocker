@@ -119,22 +119,6 @@ export default function ItemDetails() {
         return;
       }
       
-      // Validate token
-      //if (!token) {
-      //  await refreshToken();
-      //  if (!token) {
-      //    Alert.alert('Authentication Error', 'Please login again');
-      //    return;
-      //  }
-      //}
-      
-      // Validate quantity
-      const q = Number(qty);
-      if (isNaN(q) || q <= 0) {
-        Alert.alert('Invalid Quantity', 'Please enter a valid quantity greater than 0');
-        return;
-      }
-      
       // Validate shelf
       const sh = shelf?.trim() || '';
       if (!sh) {
@@ -153,7 +137,7 @@ export default function ItemDetails() {
       const payload: any = {
         item_id: String(item.item_id ?? ''),
         uom: String(item.uom ?? ''),
-        qty: q,
+        qty: qty, 
         warehouse: warehouse || selectedWarehouse?.warehouse_id || '',
         shelf: sh,
         date_time: formatDateTime(new Date()),
