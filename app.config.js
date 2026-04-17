@@ -5,6 +5,7 @@ export default {
   expo: {
     name: "stocker",
     slug: "stocker",
+    icon: "./assets/images/icon.png",
     owner: "erpgulf",
     version: "1.0.0",
     newArchEnabled: true,
