@@ -5,8 +5,15 @@ export default {
   expo: {
     name: "stocker",
     slug: "stocker",
+    owner: "erpgulf",
     version: "1.0.0",
     newArchEnabled: true,
+    android: {
+      package: "com.bazim.stocker",
+    },
+    ios: {
+      bundleIdentifier: "com.bazim.stocker",
+    },
     web: {
       bundler: "metro",
       output: "static",
@@ -17,7 +24,7 @@ export default {
     },
     extra: {
       eas: {
-        projectId: "00b3ee89-7a73-4ee5-9dde-43b99ec4b2e0",
+        projectId: "df51e535-ffab-4f5f-a6b8-b65d1ec0091f",
       },
     },
   },
