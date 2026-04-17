@@ -1,4 +1,4 @@
-package com.hibarineesh.stocker
+package com.bazim.stocker
 
 import android.app.Application
 import android.content.res.Configuration

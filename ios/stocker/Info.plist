@@ -28,7 +28,7 @@
         <key>CFBundleURLSchemes</key>
         <array>
           <string>stocker</string>
-          <string>com.hibarineesh.stocker</string>
+          <string>com.bazim.stocker</string>
         </array>
       </dict>
     </array>

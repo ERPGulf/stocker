@@ -1,4 +1,4 @@
-package com.hibarineesh.stocker
+package com.bazim.stocker
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build
