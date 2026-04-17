@@ -20,6 +20,10 @@ export default {
       output: "static",
       favicon: "./assets/images/favicon.png",
     },
+    updates: {
+      url: "https://u.expo.dev/df51e535-ffab-4f5f-a6b8-b65d1ec0091f",
+    },
+    runtimeVersion: "1.0.0",
     experiments: {
       typedRoutes: true,
     },
